@@ -14,37 +14,6 @@ env:
   gh_issue_repo: duckdblabs/duckdb-internal
 
 jobs:
-  check-nightly-builds:
-    name: Check Nightly Build failures
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install 
-        shell: bash
-        run: pip install duckdb pandas tabulate
-
-      - name: Create run status report for nightly-builds on 'main'
-        continue-on-error: true
-        run: |
-          # count consecutive failures and create a ${{ env.NIGHTLY_BUILD_FILE }}.md file
-          python scripts/count_consecutive_failures.py
-
-      - name: Upload nightly-build status
-        uses: actions/upload-artifact@v4
-        if: success()
-        with:
-          name: ${{ env.NIGHTLY_BUILD_FILE }}
-          path: ${{ env.NIGHTLY_BUILD_FILE }}.md
-          if-no-files-found: error
-
   configure-mount-and-download-benchmark-data:
     name: Configure mount and download benchmark data
     runs-on: self-hosted
@@ -58,7 +27,6 @@ jobs:
 
       - name: Load data for sf100 benchmarks.
         shell: bash
-        working-directory: ${{ env.mounted_directory_name}}
         run: |
           wget https://duckdb-blobs.s3.us-east-1.amazonaws.com/data/tpch-sf100.db -O tpch_sf100.duckdb
 
