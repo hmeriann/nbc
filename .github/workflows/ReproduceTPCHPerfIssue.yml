@@ -1,0 +1,139 @@
+name: ReproduceTPCHPerfIssue
+on:
+  # schedule:
+  #   - cron:  '0 1 * * MON' # runs at 2am CET MONDAY
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref || '' }}-${{ github.base_ref || '' }}-${{ github.ref != 'refs/heads/main' || github.sha }}
+  cancel-in-progress: true
+
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  gh_issue_repo: duckdblabs/duckdb-internal
+
+jobs:
+  check-nightly-builds:
+    name: Check Nightly Build failures
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install 
+        shell: bash
+        run: pip install duckdb pandas tabulate
+
+      - name: Create run status report for nightly-builds on 'main'
+        continue-on-error: true
+        run: |
+          # count consecutive failures and create a ${{ env.NIGHTLY_BUILD_FILE }}.md file
+          python scripts/count_consecutive_failures.py
+
+      - name: Upload nightly-build status
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: ${{ env.NIGHTLY_BUILD_FILE }}
+          path: ${{ env.NIGHTLY_BUILD_FILE }}.md
+          if-no-files-found: error
+
+  configure-mount-and-download-benchmark-data:
+    name: Configure mount and download benchmark data
+    runs-on: self-hosted
+    env:
+      AWS_PROFILE: user1
+
+    steps:
+      - name: Install
+        shell: bash
+        run: sudo apt-get update -y -qq && sudo apt-get install -y -qq g++ ninja-build cmake make python-is-python3 libssl-dev pip gh jq python3-requests
+
+      - name: Load data for sf100 benchmarks.
+        shell: bash
+        working-directory: ${{ env.mounted_directory_name}}
+        run: |
+          wget https://duckdb-blobs.s3.us-east-1.amazonaws.com/data/tpch-sf100.db -O tpch_sf100.duckdb
+
+  build-and-setup:
+    name: BUILD f027a66be019569c316599090158577ab342bf4f
+    needs: 
+      - configure-mount-and-download-benchmark-data
+    strategy:
+      matrix:
+        runners: [ 'ubuntu-latest', 'macos-latest', 'macos-13', 'windows-latest', 'ubuntu-24.04-arm' ]
+      fail-fast: false
+    runs-on: ${{ matrix.runners }}
+    env:
+      GEN: ninja
+      BUILD_BENCHMARK: 1
+      BUILD_TPCH: 1
+      BUILD_JSON: 1
+      BUILD_HTTPFS: 1
+      BUILD_ICU: 1
+      BUILD_JEMALLOC: 1
+      CORE_EXTENSIONS: "inet"
+      regression_output: regression_output.txt
+    steps:
+      - name: checkout duckdb-curr
+        uses: actions/checkout@v4
+        with:
+          repository: 'duckdb/duckdb'
+          ref: 'f027a66be019569c316599090158577ab342bf4f'
+
+      - name: Build
+        shell: bash
+        run: |
+          cd duckdb && make clean && make
+          
+      - name: Set up benchmarks 
+        shell: bash
+        run: |
+          mkdir ../duckdb/benchmark
+          
+          # set mem limit and threads to extension/tpch/dbgen/queries/ here:
+          for q in "/duckdb/extension/tpch/dbgen/queries/"*; do
+            sed -i '1i SET memory_limit = '\''16GB'\'';' "$q"
+            sed -i '2i SET threads TO 8;' "$q"
+          done
+
+      - name: Link duckdb-curr/duckdb_benchmark_data to tpch_sf100.duckdb and tpcds_sf100.duckdb
+        shell: bash 
+        run: |
+          # make sure there is no duckdb_benchmark_data left over from the previous run
+          rm -rf duckdb_benchmark_data
+          mkdir duckdb_benchmark_data
+          cd duckdb_benchmark_data
+          ln -s tpch_sf100.duckdb .
+    
+      - name: Run Regression Test
+        continue-on-error: true
+        shell: bash
+        run: |
+          export disable_timeout=""
+          # tests=('large/tpch.csv' 'large/tpcds.csv')
+          tests=('large/tpch.csv')
+          
+          for test in ${tests[@]}; do
+            if [[ "${test}" == "large/tpcds.csv" ]]; then
+                disable_timeout="--disable-timeout"
+            fi  
+            test_type=$(echo "${test}" | sed -e 's/\//_/g'  -e 's/\.csv//' )
+
+            file_name="regression_output_${test_type}.txt"
+            python duckdb/scripts/regression/test_runner.py duckdb/.github/regression/$test $disable_timeout \
+              --verbose > "${file_name}"
+          done
+          
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: RESULTS
+          path: regression_*.txt
+          if-no-files-found: error
