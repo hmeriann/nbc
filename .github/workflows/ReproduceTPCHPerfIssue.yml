@@ -3,7 +3,6 @@ on:
   # schedule:
   #   - cron:  '0 1 * * MON' # runs at 2am CET MONDAY
   workflow_dispatch:
-  push:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref || '' }}-${{ github.base_ref || '' }}-${{ github.ref != 'refs/heads/main' || github.sha }}
@@ -15,10 +14,12 @@ env:
 
 jobs:
   configure-mount-and-download-benchmark-data:
-    name: Configure mount and download benchmark data
-    runs-on: self-hosted
-    env:
-      AWS_PROFILE: user1
+    name: Test on ${{ matrix.runners }}
+    runs-on: ${{ matrix.runners }}
+    strategy:
+      matrix:
+        runners: [ 'ubuntu-latest', 'macos-latest', 'macos-13', 'windows-latest', 'ubuntu-24.04-arm' ]
+      fail-fast: false
 
     steps:
       - name: Install
@@ -30,26 +31,6 @@ jobs:
         run: |
           wget https://duckdb-blobs.s3.us-east-1.amazonaws.com/data/tpch-sf100.db -O tpch_sf100.duckdb
 
-  build-and-setup:
-    name: BUILD f027a66be019569c316599090158577ab342bf4f
-    needs: 
-      - configure-mount-and-download-benchmark-data
-    strategy:
-      matrix:
-        runners: [ 'ubuntu-latest', 'macos-latest', 'macos-13', 'windows-latest', 'ubuntu-24.04-arm' ]
-      fail-fast: false
-    runs-on: ${{ matrix.runners }}
-    env:
-      GEN: ninja
-      BUILD_BENCHMARK: 1
-      BUILD_TPCH: 1
-      BUILD_JSON: 1
-      BUILD_HTTPFS: 1
-      BUILD_ICU: 1
-      BUILD_JEMALLOC: 1
-      CORE_EXTENSIONS: "inet"
-      regression_output: regression_output.txt
-    steps:
       - name: checkout duckdb-curr
         uses: actions/checkout@v4
         with:
