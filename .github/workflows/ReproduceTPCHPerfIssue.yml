@@ -58,7 +58,7 @@ jobs:
       - name: Set up benchmarks 
         shell: bash
         run: |
-          mkdir ../duckdb/benchmark
+          mkdir duckdb/benchmark
           
           # set mem limit and threads to extension/tpch/dbgen/queries/ here:
           for q in "/duckdb/extension/tpch/dbgen/queries/"*; do
