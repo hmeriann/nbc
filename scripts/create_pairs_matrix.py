@@ -56,6 +56,7 @@ PAIR_FILE = "duckdb_previous_version_pairs.json"
 TXT_FILE = "duckdb_curr_version_main.txt"
 PARENT_DIR = os.path.dirname(os.getcwd())
 PAIRS_FILE_PATH = os.path.join(PARENT_DIR, PAIR_FILE)
+GH_REPO = "duckdb/duckdb"
 
 def maybe_remove_txt_file():
     txt_file_path = os.path.join(PARENT_DIR, TXT_FILE)
@@ -84,10 +85,15 @@ def check_its(branch_name):
     result = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True)
     return result.stdout.strip() == branch_name
 
+def list_branches(repo):
+    result = subprocess.run(["gh", "api", f"repos/{GH_REPO}/branches", "--paginate", "--jq", ".[].name"], capture_output=True, text=True)
+    return result.stdout.strip().splitlines()
+
 def hardcode_versions():
-    main_branch = 'main'
-    release_branch = 'v1.2-histrionicus'
-    previous_release_branch = 'v1.1-eatoni'
+    branches = list_branches(GH_REPO)
+    main_branch = branches[0]
+    release_branch = branches[-1]
+    previous_release_branch = branches[-2]
     pairs = []
 
     git_checkout(main_branch)
@@ -111,12 +117,13 @@ def hardcode_versions():
         "old_name": release_branch,
         "old_sha": curr_release_sha
     })
-    pairs.append({
-        "new_name": release_branch,
-        "new_sha": curr_release_sha,
-        "old_name": release_branch,
-        "old_sha": old_release_sha
-    })
+    if len(old_release_sha) > 0:
+        pairs.append({
+            "new_name": release_branch,
+            "new_sha": curr_release_sha,
+            "old_name": release_branch,
+            "old_sha": old_release_sha
+        })
 
     git_fetch(previous_release_branch)
     git_checkout(previous_release_branch)
