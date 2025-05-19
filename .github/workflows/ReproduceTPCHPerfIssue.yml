@@ -23,9 +23,9 @@ jobs:
       fail-fast: false
 
     steps:
-      - name: Install
-        shell: bash
-        run: sudo apt-get update -y -qq && sudo apt-get install -y -qq g++ ninja-build cmake make python-is-python3 libssl-dev pip gh jq python3-requests
+      # - name: Install
+      #   shell: bash
+      #   run: sudo apt-get update -y -qq && sudo apt-get install -y -qq g++ ninja-build cmake make python-is-python3 libssl-dev pip gh jq python3-requests
 
       - name: Load data for sf100 benchmarks.
         shell: bash
