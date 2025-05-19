@@ -48,6 +48,7 @@ jobs:
         with:
           repository: 'duckdb/duckdb'
           ref: 'f027a66be019569c316599090158577ab342bf4f'
+          path: duckdb
 
       - name: Build
         shell: bash
