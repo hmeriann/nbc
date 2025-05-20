@@ -46,12 +46,12 @@ jobs:
         shell: bash
         run: sudo apt-get update -y -qq && sudo apt-get install -y -qq g++ ninja-build cmake make python-is-python3 libssl-dev pip gh jq python3-requests
       
-      - name: Load data for sf100 benchmarks.
-        shell: bash
-        working-directory: ${{ env.mounted_directory_name}}
-        run: |
-          wget https://duckdb-blobs.s3.us-east-1.amazonaws.com/data/tpch-sf100.db -O tpch_sf100.duckdb
-          sudo du -sh /home/* /usr/* /opt/* 2>/dev/null | sort -hr | head -20
+      # - name: Load data for sf100 benchmarks.
+      #   shell: bash
+      #   working-directory: ${{ env.mounted_directory_name}}
+      #   run: |
+      #     wget https://duckdb-blobs.s3.us-east-1.amazonaws.com/data/tpch-sf100.db -O tpch_sf100.duckdb
+      #     sudo du -sh /home/* /usr/* /opt/* 2>/dev/null | sort -hr | head -20
 
       - name: checkout duckdb-curr
         uses: actions/checkout@v4
