@@ -65,15 +65,16 @@ jobs:
           # sudo rm -rf /opt/microsoft
           # sudo rm -rf /opt/google
           # df -h
+          du -sh /Applications/Xcode* 2>/dev/null
           sudo rm -rf /Applications/Xcode*
-          sudo rm -rf /Library/Developer/CommandLineTools
-          sudo rm -rf /Library/Developer/CoreSimulator
-          sudo rm -rf /private/var/folders/*
-          sudo rm -rf /Users/runner/Library/Caches/*
-          sudo rm -rf /Users/runner/Library/Developer/*
-          sudo rm -rf /Users/runner/Library/Application\ Support/*
-          sudo rm -rf /Users/runner/hostedtoolcache
-          df -h
+          sudo rm -rf /Library/Developer/CommandLineTools || true
+          sudo rm -rf /Library/Developer/CoreSimulator || true
+          sudo rm -rf /private/var/folders/* || true
+          sudo rm -rf /Users/runner/Library/Caches/* || true
+          sudo rm -rf /Users/runner/Library/Developer/* || true
+          sudo rm -rf /Users/runner/Library/Application\ Support/* || true
+          sudo rm -rf /Users/runner/hostedtoolcache || true
+          du -sh /Applications/Xcode* 2>/dev/null
 
       - name: Install
         shell: bash
