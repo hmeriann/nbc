@@ -12,33 +12,42 @@ concurrency:
 env:
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   gh_issue_repo: duckdblabs/duckdb-internal
+  mounted_directory_name: mount-point
 
 jobs:
-  configure-mount-and-download-benchmark-data:
-    name: Test on ${{ matrix.runners }}
-    runs-on: ${{ matrix.runners }}
-    strategy:
-      matrix:
-        runners: [ 'ubuntu-latest', 'macos-latest', 'macos-13', 'windows-latest', 'ubuntu-24.04-arm' ]
-      fail-fast: false
+  start-runner:
+    name: Start self-hosted ec2 runner
+    runs-on: ubuntu-latest
+    env:
+      instance_id: i-0a6cd2153bfd28349
 
     steps:
-      # - name: Install
-      #   shell: bash
-      #   run: sudo apt-get update -y -qq && sudo apt-get install -y -qq g++ ninja-build cmake make python-is-python3 libssl-dev pip gh jq python3-requests
-      - name: Remove unused stuff
-        if: ${{ matrix.runners != 'windows-latest' }}
-        run: |
-          sudo rm -rf /opt/pipx
-          sudo rm -rf /opt/microsoft
-          sudo rm -rf /opt/google
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /usr/share/dotnet
-          df -h
-          sudo du -sh /home/* /usr/* /opt/* 2>/dev/null | sort -hr | head -20
+      - name: Start EC2 runner
+        shell: bash
+        env:
+          AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
+          AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+          AWS_DEFAULT_REGION: us-east-1
+        run: aws ec2 start-instances --instance-id ${{ env.instance_id }}
 
+      - name: Create issue if failure
+        shell: bash
+        if: ${{ failure() && contains(github.ref_name, 'main') }}
+        run: |
+          gh issue create --repo ${{ env.gh_issue_repo }} --title "Weekly Regression Test Failure" --body "AWS box with instance-id ${{ env.instance_id }} could not be started"
+
+  configure-mount-and-download-benchmark-data:
+    name: Test TPCH
+    runs-on: self-hosted
+    
+    steps:
+      - name: Install
+        shell: bash
+        run: sudo apt-get update -y -qq && sudo apt-get install -y -qq g++ ninja-build cmake make python-is-python3 libssl-dev pip gh jq python3-requests
+      
       - name: Load data for sf100 benchmarks.
         shell: bash
+        working-directory: ${{ env.mounted_directory_name}}
         run: |
           wget https://duckdb-blobs.s3.us-east-1.amazonaws.com/data/tpch-sf100.db -O tpch_sf100.duckdb
           sudo du -sh /home/* /usr/* /opt/* 2>/dev/null | sort -hr | head -20
@@ -48,15 +57,18 @@ jobs:
         with:
           repository: 'duckdb/duckdb'
           ref: 'f027a66be019569c316599090158577ab342bf4f'
-          path: duckdb
+          path: ${{ env.mounted_directory_name}}/duckdb
+
 
       - name: Build
         shell: bash
+        working-directory: ${{ env.mounted_directory_name}}
         run: |
           cd duckdb && make clean && make
           
       - name: Set up benchmarks 
         shell: bash
+        working-directory: ${{ env.mounted_directory_name}}
         run: |
           # mkdir duckdb/benchmark
           
@@ -68,6 +80,7 @@ jobs:
 
       - name: Link duckdb-curr/duckdb_benchmark_data to tpch_sf100.duckdb and tpcds_sf100.duckdb
         shell: bash 
+        working-directory: ${{ env.mounted_directory_name}}
         run: |
           # make sure there is no duckdb_benchmark_data left over from the previous run
           rm -rf duckdb_benchmark_data
@@ -78,6 +91,7 @@ jobs:
       - name: Run Regression Test
         continue-on-error: true
         shell: bash
+        working-directory: ${{ env.mounted_directory_name}}
         run: |
           export disable_timeout=""
           # tests=('large/tpch.csv' 'large/tpcds.csv')
@@ -98,5 +112,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: RESULTS
-          path: regression_*.txt
+          path: ${{ env.mounted_directory_name}}/regression_*.txt
           if-no-files-found: error
