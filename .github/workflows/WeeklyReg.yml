@@ -257,8 +257,7 @@ jobs:
         shell: bash
         working-directory: ${{ env.mounted_directory_name }}
         run: |
-          export disable_timeout=""
-          tests=('large/tpch.csv')
+          test=('large/tpch.csv')
           
           test_type=$(echo "${test}" | sed -e 's/\//_/g'  -e 's/\.csv//' )
 
@@ -266,7 +265,7 @@ jobs:
           python duckdb-curr-${{ matrix.versions.new_name }}/scripts/regression/test_runner.py \
             --old=duckdb-old-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner \
             --new=duckdb-curr-${{ matrix.versions.new_name }}/build/release/benchmark/benchmark_runner \
-            --benchmarks=duckdb-curr-${{ matrix.versions.new_name }}/.github/regression/$test $disable_timeout \
+            --benchmarks=duckdb-curr-${{ matrix.versions.new_name }}/.github/regression/$test \
             --verbose > "${file_name}"
         
       # - name: Add detected regressions to report file while in matrix context
