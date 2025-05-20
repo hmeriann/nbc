@@ -58,12 +58,21 @@ jobs:
     steps:
       - name: Clean up space
         run: |
-          sudo apt-get clean
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/pipx
-          sudo rm -rf /opt/microsoft
-          sudo rm -rf /opt/google
+          # sudo apt-get clean
+          # sudo rm -rf /usr/local/lib/android
+          # sudo rm -rf /usr/share/dotnet
+          # sudo rm -rf /opt/pipx
+          # sudo rm -rf /opt/microsoft
+          # sudo rm -rf /opt/google
+          # df -h
+          sudo rm -rf /Applications/Xcode*
+          sudo rm -rf /Library/Developer/CommandLineTools
+          sudo rm -rf /Library/Developer/CoreSimulator
+          sudo rm -rf /private/var/folders/*
+          sudo rm -rf /Users/runner/Library/Caches/*
+          sudo rm -rf /Users/runner/Library/Developer/*
+          sudo rm -rf /Users/runner/Library/Application\ Support/*
+          sudo rm -rf /Users/runner/hostedtoolcache
           df -h
 
       - name: Install
