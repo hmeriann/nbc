@@ -85,7 +85,7 @@ def check_its(branch_name):
     return result.stdout.strip() == branch_name
 
 def hardcode_versions():
-    main_branch = 'main'
+    main_branch = 'v1.3-ossivalis'
     release_branch = 'v1.2-histrionicus'
     previous_release_branch = 'v1.1-eatoni'
     pairs = []
@@ -94,12 +94,6 @@ def hardcode_versions():
     git_fetch(main_branch)
     curr_main_sha = get_current_sha()
     old_main_sha = get_sha_week_ago(main_branch)
-    pairs.append({
-        "new_name": main_branch,
-        "new_sha": curr_main_sha,
-        "old_name": main_branch,
-        "old_sha": old_main_sha
-    })
     
     git_fetch(release_branch)
     git_checkout(release_branch)
@@ -111,12 +105,7 @@ def hardcode_versions():
         "old_name": release_branch,
         "old_sha": curr_release_sha
     })
-    pairs.append({
-        "new_name": release_branch,
-        "new_sha": curr_release_sha,
-        "old_name": release_branch,
-        "old_sha": old_release_sha
-    })
+
 
     git_fetch(previous_release_branch)
     git_checkout(previous_release_branch)
