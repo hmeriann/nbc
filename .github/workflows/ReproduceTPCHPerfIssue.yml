@@ -3,7 +3,7 @@ on:
   # schedule:
   #   - cron:  '0 1 * * MON' # runs at 2am CET MONDAY
   workflow_dispatch:
-  # push:
+  push:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref || '' }}-${{ github.base_ref || '' }}-${{ github.ref != 'refs/heads/main' || github.sha }}
