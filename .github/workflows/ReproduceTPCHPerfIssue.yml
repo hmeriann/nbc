@@ -69,7 +69,7 @@ jobs:
           sudo rm -rf /Applications/Xcode* || true
           sudo rm -rf /Library/Developer/CommandLineTools || true
           sudo rm -rf /Library/Developer/CoreSimulator || true
-          sudo rm -rf /private/var/folders/* || true
+          # sudo rm -rf /private/var/folders/* || true
           sudo rm -rf /Users/runner/Library/Caches/* || true
           sudo rm -rf /Users/runner/Library/Developer/* || true
           sudo rm -rf /Users/runner/Library/Application\ Support/* || true
