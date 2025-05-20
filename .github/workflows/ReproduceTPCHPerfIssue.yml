@@ -38,6 +38,7 @@ jobs:
 
   configure-mount-and-download-benchmark-data:
     name: Test TPCH
+    needs: start-runner
     runs-on: self-hosted
     
     steps:
@@ -56,7 +57,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 'duckdb/duckdb'
-          ref: 'f027a66be019569c316599090158577ab342bf4f'
+          fetch-depth: 0
           path: ${{ env.mounted_directory_name}}/duckdb
 
 
@@ -64,7 +65,9 @@ jobs:
         shell: bash
         working-directory: ${{ env.mounted_directory_name}}
         run: |
-          cd duckdb && make clean && make
+          cd duckdb 
+          git checkout f027a66be019569c316599090158577ab342bf4f
+          make clean && make
           
       - name: Set up benchmarks 
         shell: bash
