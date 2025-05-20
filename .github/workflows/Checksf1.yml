@@ -1,0 +1,162 @@
+name: SF1
+on:
+  # schedule:
+  #   - cron:  '0 1 * * MON' # runs at 2am CET MONDAY
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref || '' }}-${{ github.base_ref || '' }}-${{ github.ref != 'refs/heads/main' || github.sha }}
+  cancel-in-progress: true
+
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  gh_issue_repo: duckdblabs/duckdb-internal
+  mounted_directory_name: mount-point
+  NIGHTLY_BUILD_FILE: nightly_builds_status
+
+jobs:
+  configure-mount-and-download-benchmark-data:
+    name: Configure mount and download benchmark data
+    runs-on: ubuntu-latest
+    env:
+      AWS_PROFILE: user1
+
+    steps:
+      - name: Install
+        shell: bash
+        run: sudo apt-get update -y -qq && sudo apt-get install -y -qq g++ ninja-build cmake make python-is-python3 libssl-dev pip gh jq python3-requests
+
+  define-matrix:
+    name: Define matrix of pairs
+    needs: configure-mount-and-download-benchmark-data
+    runs-on: ubuntu-latest
+    outputs:
+      versions: ${{ steps.create-version-pairs.outputs.pairs }}
+
+    steps:
+      - name: Sparse-checkout repo with a script
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/create_pairs_matrix.py
+          path: scripts
+
+      - name: checkout duckdb
+        uses: actions/checkout@v4
+        with:
+          repository: 'duckdb/duckdb'
+          fetch-depth: 0
+          path: duckdb
+      
+      - name: create pairs.json
+        working-directory: ${{ env.mounted_directory_name }}
+        run: |
+          mv scripts/scripts/create_pairs_matrix.py duckdb/scripts
+          cd duckdb
+          python scripts/create_pairs_matrix.py
+      
+      - name: move pairs.json
+        run: mv ${{ env.mounted_directory_name }}/duckdb_previous_version_pairs.json .
+          
+      - name: Read JSON and create version pairs matrix
+        working-directory: ${{ env.mounted_directory_name }}
+        id: create-version-pairs
+        run: |
+          pairs=$(cat ../duckdb_previous_version_pairs.json | jq -c '.')
+          echo "pairs=$pairs" >> $GITHUB_OUTPUT
+
+  build-and-setup:
+    name: BUILD - ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
+    needs: 
+      - define-matrix
+      - configure-mount-and-download-benchmark-data
+    strategy:
+      matrix:
+        versions: ${{ fromJSON(needs.define-matrix.outputs.versions) }}
+      fail-fast: false
+    runs-on: ubuntu-latest
+    env:
+      GEN: ninja
+      BUILD_BENCHMARK: 1
+      BUILD_TPCH: 1
+      BUILD_TPCDS: 1
+      BUILD_JSON: 1
+      BUILD_HTTPFS: 1
+      BUILD_ICU: 1
+      BUILD_JEMALLOC: 1
+      CORE_EXTENSIONS: "inet"
+      regression_output: regression_output.txt
+    steps:
+      - name: checkout duckdb-curr (${{ matrix.versions.new_name }})
+        uses: actions/checkout@v4
+        with:
+          repository: 'duckdb/duckdb'
+          ref: ${{ matrix.versions.new_sha }}
+          fetch-depth: 0
+          path: duckdb-curr-${{ matrix.versions.new_name }}
+
+      - name: checkout duckdb-old (${{ matrix.versions.old_name }})
+        uses: actions/checkout@v4
+        with:
+          repository: 'duckdb/duckdb'
+          ref: ${{ matrix.versions.old_sha }}
+          fetch-depth: 0
+          path: duckdb-old-${{ matrix.versions.old_name }}
+
+      - name: Build new (${{ matrix.versions.new_name }}) and old (${{ matrix.versions.old_name }})
+        shell: bash
+        run: |
+          cd duckdb-curr-${{ matrix.versions.new_name }} && make clean && make
+          cd ..
+          cd duckdb-old-${{ matrix.versions.old_name }} && make clean && make
+
+      - name: Set up benchmarks 
+        shell: bash
+        working-directory: duckdb-old-${{ matrix.versions.old_name }}
+        run: |
+          # we do this so new added benchmarks that break duckdb old
+          # do not cause failures.
+          rm -rf ../duckdb-curr-${{ matrix.versions.new_name }}/benchmark
+          mkdir ../duckdb-curr-${{ matrix.versions.new_name }}/benchmark
+          cp -r benchmark ../duckdb-curr-${{ matrix.versions.new_name }}
+
+  run-regression-tests:
+    name: TEST - ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
+    if: always()
+    needs: 
+      - define-matrix
+      - configure-mount-and-download-benchmark-data
+      - build-and-setup
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        versions: ${{ fromJSON(needs.define-matrix.outputs.versions) }}
+    steps:          
+      - name: Run Regression Test ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
+        continue-on-error: true
+        shell: bash
+        run: |
+          tests=('tpch.csv', 'tpcds.csv')
+          
+          for test in ${tests[@]}; do
+            if [[ "${test}" == "large/tpcds.csv" ]]; then
+                disable_timeout="--disable-timeout"
+            fi  
+            
+            test_type=$(echo "${test}" | sed -e 's/\//_/g'  -e 's/\.csv//' )
+            file_name="regression_output_${test_type}_${{ matrix.versions.new_name }}_${{ matrix.versions.old_name }}.txt"
+
+            python duckdb-curr-${{ matrix.versions.new_name }}/scripts/regression/test_runner.py \
+              --old=duckdb-old-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner \
+              --new=duckdb-curr-${{ matrix.versions.new_name }}/build/release/benchmark/benchmark_runner \
+              --benchmarks=duckdb-curr-${{ matrix.versions.new_name }}/.github/regression/$test $disable_timeout \
+              --verbose > "${file_name}"
+          done
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: ${{ matrix.versions.new_name }}_${{ matrix.versions.old_name }}
+          path: regression_*_${{ matrix.versions.new_name }}_${{ matrix.versions.old_name }}.txt
+          if-no-files-found: error
