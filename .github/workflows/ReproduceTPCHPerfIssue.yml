@@ -15,31 +15,35 @@ env:
   mounted_directory_name: mount-point
 
 jobs:
-  start-runner:
-    name: Start self-hosted ec2 runner
-    runs-on: ubuntu-latest
-    env:
-      instance_id: i-0a6cd2153bfd28349
+  # start-runner:
+  #   name: Start self-hosted ec2 runner
+  #   runs-on: ubuntu-latest
+  #   env:
+  #     instance_id: i-0a6cd2153bfd28349
 
-    steps:
-      - name: Start EC2 runner
-        shell: bash
-        env:
-          AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
-          AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
-          AWS_DEFAULT_REGION: us-east-1
-        run: aws ec2 start-instances --instance-id ${{ env.instance_id }}
+  #   steps:
+  #     - name: Start EC2 runner
+  #       shell: bash
+  #       env:
+  #         AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
+  #         AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+  #         AWS_DEFAULT_REGION: us-east-1
+  #       run: aws ec2 start-instances --instance-id ${{ env.instance_id }}
 
-      - name: Create issue if failure
-        shell: bash
-        if: ${{ failure() && contains(github.ref_name, 'main') }}
-        run: |
-          gh issue create --repo ${{ env.gh_issue_repo }} --title "Weekly Regression Test Failure" --body "AWS box with instance-id ${{ env.instance_id }} could not be started"
+  #     - name: Create issue if failure
+  #       shell: bash
+  #       if: ${{ failure() && contains(github.ref_name, 'main') }}
+  #       run: |
+  #         gh issue create --repo ${{ env.gh_issue_repo }} --title "Weekly Regression Test Failure" --body "AWS box with instance-id ${{ env.instance_id }} could not be started"
 
   configure-mount-and-download-benchmark-data:
     name: Test TPCH
-    needs: start-runner
-    runs-on: self-hosted
+    # needs: start-runner
+    # runs-on: self-hosted
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        runner: [ ubuntu-latest, ubuntu-22.04 ]
     env:
       GEN: ninja
       BUILD_BENCHMARK: 1
@@ -79,14 +83,14 @@ jobs:
           git checkout f027a66be019569c316599090158577ab342bf4f
           make clean && make
           
-      - name: Set up benchmarks 
-        shell: bash
-        working-directory: ${{ env.mounted_directory_name}}
-        run: |
-          mkdir duckdb_benchmark_data
-          cd duckdb_benchmark_data
-          ln -s ../../tpch_sf100.duckdb .
-          cd ..
+      # - name: Set up benchmarks 
+      #   shell: bash
+      #   working-directory: ${{ env.mounted_directory_name}}
+      #   run: |
+      #     mkdir duckdb_benchmark_data
+      #     cd duckdb_benchmark_data
+      #     ln -s ../../tpch_sf100.duckdb .
+      #     cd ..
     
       - name: Run Regression Test
         continue-on-error: true
