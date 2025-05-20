@@ -49,17 +49,15 @@ jobs:
           path: duckdb
       
       - name: create pairs.json
-        working-directory: ${{ env.mounted_directory_name }}
         run: |
           mv scripts/scripts/create_pairs_matrix.py duckdb/scripts
           cd duckdb
           python scripts/create_pairs_matrix.py
       
       - name: move pairs.json
-        run: mv ${{ env.mounted_directory_name }}/duckdb_previous_version_pairs.json .
+        run: mv duckdb_previous_version_pairs.json .
           
       - name: Read JSON and create version pairs matrix
-        working-directory: ${{ env.mounted_directory_name }}
         id: create-version-pairs
         run: |
           pairs=$(cat ../duckdb_previous_version_pairs.json | jq -c '.')
