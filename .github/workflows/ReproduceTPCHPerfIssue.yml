@@ -98,7 +98,7 @@ jobs:
         working-directory: ${{ env.mounted_directory_name}}
         run: |
           echo "NO LIMIT" 
-          /build/release/benchmark/benchmark_runner "benchmark/large/tpch-sf100/.*" 
+          ./build/release/benchmark/benchmark_runner "benchmark/large/tpch-sf100/.*" 
 
           # set mem limit and threads to extension/tpch/dbgen/queries/ here:
           for q in "extension/tpch/dbgen/queries/"*; do
@@ -108,4 +108,4 @@ jobs:
           
           echo "LIMIT" 
 
-          /build/release/benchmark/benchmark_runner "benchmark/large/tpch-sf100/.*" 
+          ./build/release/benchmark/benchmark_runner "benchmark/large/tpch-sf100/.*" 
