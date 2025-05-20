@@ -74,7 +74,9 @@ jobs:
 
       - name: Install
         shell: bash
-        run: sudo apt-get update -y -qq && sudo apt-get install -y -qq g++ ninja-build cmake make libssl-dev
+        run: |
+          brew update
+          brew install ninja cmake make
       
       # - name: Load data for sf100 benchmarks.
       #   shell: bash
