@@ -72,12 +72,13 @@ jobs:
         with:
           repository: 'duckdb/duckdb'
           fetch-depth: 0
-          path: ${{ env.mounted_directory_name}}/duckdb
+          path: duckdb
+          # path: ${{ env.mounted_directory_name}}/duckdb
 
 
       - name: Build
         shell: bash
-        working-directory: ${{ env.mounted_directory_name}}
+        # working-directory: ${{ env.mounted_directory_name}}
         run: |
           cd duckdb 
           git checkout f027a66be019569c316599090158577ab342bf4f
@@ -95,8 +96,9 @@ jobs:
       - name: Run Regression Test
         continue-on-error: true
         shell: bash
-        working-directory: ${{ env.mounted_directory_name}}
+        # working-directory: ${{ env.mounted_directory_name}}
         run: |
+          cd duckdb
           echo "NO LIMIT" 
           ./build/release/benchmark/benchmark_runner "benchmark/large/tpch-sf100/.*" 
 
