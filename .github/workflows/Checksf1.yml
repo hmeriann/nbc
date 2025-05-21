@@ -54,13 +54,13 @@ jobs:
           cd duckdb
           python scripts/create_pairs_matrix.py
       
-      - name: move pairs.json
-        run: mv -f duckdb_previous_version_pairs.json .
+      # - name: move pairs.json
+      #   run: mv -f duckdb_previous_version_pairs.json .
           
       - name: Read JSON and create version pairs matrix
         id: create-version-pairs
         run: |
-          pairs=$(cat ../duckdb_previous_version_pairs.json | jq -c '.')
+          pairs=$(cat duckdb_previous_version_pairs.json | jq -c '.')
           echo "pairs=$pairs" >> $GITHUB_OUTPUT
 
   build-and-setup:
