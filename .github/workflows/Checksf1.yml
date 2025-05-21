@@ -55,7 +55,7 @@ jobs:
           python scripts/create_pairs_matrix.py
       
       - name: move pairs.json
-        run: mv duckdb_previous_version_pairs.json .
+        run: mv -f duckdb_previous_version_pairs.json .
           
       - name: Read JSON and create version pairs matrix
         id: create-version-pairs

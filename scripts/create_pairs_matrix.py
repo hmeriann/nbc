@@ -111,8 +111,8 @@ def hardcode_versions():
     git_checkout(previous_release_branch)
     curr_previous_release_sha = get_current_sha()
     pairs.append({
-        "new_name": main_branch,
-        "new_sha": curr_main_sha,
+        "new_name": release_branch,
+        "new_sha": curr_release_sha,
         "old_name": previous_release_branch,
         "old_sha": curr_previous_release_sha
     })
