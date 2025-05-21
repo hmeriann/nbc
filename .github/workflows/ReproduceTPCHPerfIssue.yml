@@ -127,9 +127,12 @@ jobs:
             # done
 
           for q in extension/tpch/dbgen/queries/*; do
-            sed -i '' $'1i\\\nSET memory_limit = \'16GB\';\nSET threads TO 8;' "$q"
+            sed -i '' $'1i\\\nSET memory_limit = \'16GB\';' "$q"
           done
-          
+          for q in extension/tpch/dbgen/queries/*; do
+            sed -i '' $'2i\\\nSET threads TO 8;\n' "$q"
+          done
+
           echo "LIMIT" 
 
           ./build/release/benchmark/benchmark_runner "benchmark/large/tpch-sf100/.*" 
