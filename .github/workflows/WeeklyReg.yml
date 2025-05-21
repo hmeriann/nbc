@@ -267,6 +267,9 @@ jobs:
             --new=duckdb-curr-${{ matrix.versions.new_name }}/build/release/benchmark/benchmark_runner \
             --benchmarks=duckdb-curr-${{ matrix.versions.new_name }}/.github/regression/$test \
             --verbose > "${file_name}"
+
+          duckdb-old-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner 
+          duckdb-curr-${{ matrix.versions.new_name }}/build/release/benchmark/benchmark_runner
         
       # - name: Add detected regressions to report file while in matrix context
       #   shell: bash
