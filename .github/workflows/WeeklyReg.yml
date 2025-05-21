@@ -227,16 +227,16 @@ jobs:
           ln -s ${{ github.workspace }}/${{ env.mounted_directory_name }}/tpch_sf100.duckdb .
           # ln -s ${{ github.workspace }}/${{ env.mounted_directory_name }}/tpcds_sf100.duckdb .
     
-  #     - name: Link duckdb-old/duckdb_benchmark_data to tpch_sf100.duckdb and tpcds_sf100.duckdb
-  #       shell: bash 
-  #       working-directory: ${{ env.mounted_directory_name }}/duckdb-old-${{ matrix.versions.old_name }}
-  #       run: |
-  #         # make sure there is no duckdb_benchmark_data left over from the previous run
-  #         rm -rf duckdb_benchmark_data
-  #         mkdir duckdb_benchmark_data
-  #         cd duckdb_benchmark_data
-  #         ln -s ${{ github.workspace }}/${{ env.mounted_directory_name }}/tpch_sf100.duckdb .
-  #         # ln -s ${{ github.workspace }}/${{ env.mounted_directory_name }}/tpcds_sf100.duckdb .
+      - name: Link duckdb-old/duckdb_benchmark_data to tpch_sf100.duckdb and tpcds_sf100.duckdb
+        shell: bash 
+        working-directory: ${{ env.mounted_directory_name }}/duckdb-old-${{ matrix.versions.old_name }}
+        run: |
+          # make sure there is no duckdb_benchmark_data left over from the previous run
+          rm -rf duckdb_benchmark_data
+          mkdir duckdb_benchmark_data
+          cd duckdb_benchmark_data
+          ln -s ${{ github.workspace }}/${{ env.mounted_directory_name }}/tpch_sf100.duckdb .
+          # ln -s ${{ github.workspace }}/${{ env.mounted_directory_name }}/tpcds_sf100.duckdb .
     
   run-regression-tests:
     name: TEST - ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
