@@ -185,7 +185,7 @@ jobs:
         shell: bash
         working-directory: ${{ env.mounted_directory_name }}
         run: |
-          cp duckdb-old-${{ matrix.versions.old_name }}/.github/regression/micro_extended.csv duckdb-new-${{ matrix.versions.new_name }}/.github/regression/
+          cp duckdb-old-${{ matrix.versions.old_name }}/.github/regression/micro_extended.csv duckdb-new-${{ matrix.versions.new_name }}/.github/regression/micro_extended.csv
 
       - name: Set up benchmarks 
         shell: bash
