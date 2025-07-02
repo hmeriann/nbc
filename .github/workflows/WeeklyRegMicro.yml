@@ -239,8 +239,6 @@ jobs:
         shell: bash
         working-directory: ${{ env.mounted_directory_name }}
         run: |
-          ls duckdb-curr-${{ matrix.versions.new_name }}/benchmark/micro/**/*.benchmark > .github/regression/micro.csv
-          grep -v "arrow" .github/regression/micro.csv > tmp && mv tmp .github/regression/micro.csv
            python duckdb-curr-${{ matrix.versions.new_name }}/scripts/regression/test_runner.py \
               --old=duckdb-old-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner \
               --new=duckdb-curr-${{ matrix.versions.new_name }}/build/release/benchmark/benchmark_runner \
