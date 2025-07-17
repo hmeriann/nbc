@@ -135,6 +135,8 @@ jobs:
       #     pairs=$(cat ../duckdb_previous_version_pairs.json | jq -c '.')
       #     echo "pairs=$pairs" >> $GITHUB_OUTPUT
   call-reusable:
+    needs:
+      - define-matrix
     uses: hmeriann/nbc/.github/workflows/MicroExtended.yml@micro-extended
     with:
       run_id: ${{ github.run_id }}
