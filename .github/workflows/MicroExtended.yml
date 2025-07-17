@@ -28,17 +28,17 @@ jobs:
       versions: ${{ steps.create-version-pairs.outputs.pairs }}
 
     steps:
-      - name: Download pairs.json from calling workflow
+      - name: Download duckdb_previous_version_pairs.json from calling workflow
         uses: actions/download-artifact@v4
         with:
-            name: pairs.json
+            name: duckdb_previous_version_pairs.json
             repository: ${{ env.gh_issue_repo }}
             run-id: ${{ inputs.run_id }}
               
       - name: Read JSON and create version pairs matrix
         id: create-version-pairs
         run: |
-          pairs=$(cat ../duckdb_previous_version_pairs.json | jq -c '.')
+          pairs=$(cat duckdb_previous_version_pairs.json | jq -c '.')
           echo "pairs=$pairs" >> $GITHUB_OUTPUT
 
   build-and-setup:
