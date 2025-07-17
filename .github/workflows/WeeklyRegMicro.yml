@@ -134,10 +134,10 @@ jobs:
       #   run: |
       #     pairs=$(cat ../duckdb_previous_version_pairs.json | jq -c '.')
       #     echo "pairs=$pairs" >> $GITHUB_OUTPUT
-
-      - uses: hmeriann/nbc/.github/workflows/MicroExtended.yml@micro-extended
-        with:
-          run_id: ${{ github.run_id }}
+  call-reusable:
+    uses: hmeriann/nbc/.github/workflows/MicroExtended.yml@micro-extended
+    with:
+      run_id: ${{ github.run_id }}
 
   # build-and-setup:
   #   name: BUILD - ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
