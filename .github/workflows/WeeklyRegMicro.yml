@@ -122,6 +122,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
+          name: pairs
           path: ${{ env.mounted_directory_name }}/duckdb_previous_version_pairs.json
           if-no-files-found: error
           

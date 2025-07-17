@@ -30,7 +30,7 @@ jobs:
       - name: Download duckdb_previous_version_pairs.json from calling workflow
         uses: actions/download-artifact@v4
         with:
-            name: duckdb_previous_version_pairs.json
+            name: pairs
             repository: ${{ env.gh_issue_repo }}
             run-id: ${{ inputs.run_id }}
               
