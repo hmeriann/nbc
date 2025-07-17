@@ -262,6 +262,7 @@ jobs:
     needs:
       - start-runner
       - define-matrix
+      - call-reusable
     steps:
       - name: shutdown
         shell: bash
