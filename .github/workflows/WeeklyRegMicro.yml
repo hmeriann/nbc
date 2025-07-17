@@ -135,9 +135,7 @@ jobs:
       #     pairs=$(cat ../duckdb_previous_version_pairs.json | jq -c '.')
       #     echo "pairs=$pairs" >> $GITHUB_OUTPUT
 
-      - uses: actions/checkout@v4
-
-      - uses: ./.github/workflows/MicroExtended.yml
+      - uses: ./hmeriann/nbc/.github/workflows/MicroExtended.yml@micro-extended
         with:
           run_id: ${{ github.run_id }}
 
