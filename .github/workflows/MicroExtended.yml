@@ -1,0 +1,253 @@
+name: Micro Extended
+on:
+  workflow_call:
+    inputs:
+      run_id:
+        type: string
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Calling workflow run id'
+        type: string
+  push:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref || '' }}-${{ github.base_ref || '' }}-${{ github.ref != 'refs/heads/main' || github.sha }}
+  cancel-in-progress: true
+
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  gh_issue_repo: duckdblabs/duckdb-internal
+  REGESSION_THRESHOLD_SECONDS: 1.0
+
+jobs:
+  define-matrix:
+    name: Download matrix of pairs
+    runs-on: ubuntu-latest
+    outputs:
+      versions: ${{ steps.create-version-pairs.outputs.pairs }}
+
+    steps:
+      - name: Download pairs.json from calling workflow
+        uses: actions/download-artifact@v4
+        with:
+            name: pairs.json
+            repository: ${{ env.gh_issue_repo }}
+            run-id: ${{ inputs.run_id }}
+              
+      - name: Read JSON and create version pairs matrix
+        id: create-version-pairs
+        run: |
+          pairs=$(cat ../duckdb_previous_version_pairs.json | jq -c '.')
+          echo "pairs=$pairs" >> $GITHUB_OUTPUT
+
+  build-and-setup:
+    name: BUILD - ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
+    needs: 
+      - define-matrix
+    strategy:
+      matrix:
+        versions: ${{ fromJSON(needs.define-matrix.outputs.versions) }}
+      fail-fast: false
+    runs-on: ubuntu-latest
+    env:
+      GEN: ninja
+      BUILD_BENCHMARK: 1
+      BUILD_TPCH: 1
+      BUILD_TPCDS: 1
+      BUILD_JSON: 1
+      BUILD_HTTPFS: 1
+      BUILD_ICU: 1
+      BUILD_JEMALLOC: 1
+      CORE_EXTENSIONS: "inet"
+      regression_output: regression_output.txt
+    steps:
+      - name: checkout duckdb-curr (${{ matrix.versions.new_name }})
+        uses: actions/checkout@v4
+        with:
+          repository: 'duckdb/duckdb'
+          ref: ${{ matrix.versions.new_sha }}
+          fetch-depth: 0
+          path: duckdb-curr-${{ matrix.versions.new_name }}
+
+      - name: checkout duckdb-old (${{ matrix.versions.old_name }})
+        uses: actions/checkout@v4
+        with:
+          repository: 'duckdb/duckdb'
+          ref: ${{ matrix.versions.old_sha }}
+          fetch-depth: 0
+          path: duckdb-old-${{ matrix.versions.old_name }}
+
+      - name: Build new (${{ matrix.versions.new_name }}) and old (${{ matrix.versions.old_name }})
+        shell: bash
+        run: |
+          cd duckdb-curr-${{ matrix.versions.new_name }} && make clean && make
+          cd ..
+          cd duckdb-old-${{ matrix.versions.old_name }} && make clean && make
+
+      - name: Set up benchmarks 
+        shell: bash
+        working-directory: duckdb-old-${{ matrix.versions.old_name }}
+        run: |
+          # we do this so new added benchmarks that break duckdb old
+          # do not cause failures.
+          rm -rf ../duckdb-curr-${{ matrix.versions.new_name }}/benchmark
+          mkdir ../duckdb-curr-${{ matrix.versions.new_name }}/benchmark
+          cp -r benchmark ../duckdb-curr-${{ matrix.versions.new_name }}
+
+      # - name: generate micro_extended.csv in duckdb-old-${{ matrix.versions.old_name }}
+      #   shell: bash
+      #   working-directory: duckdb-old-${{ matrix.versions.old_name }}
+      #   run: |
+      #     find benchmark/micro | grep ".*.benchmark" | sort > .github/regression/micro_extended.csv
+    
+  run-regression-tests:
+    name: TEST - ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
+    if: always()
+    needs: 
+      - define-matrix
+      - build-and-setup
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        versions: ${{ fromJSON(needs.define-matrix.outputs.versions) }}
+    steps:          
+      - name: Run Regression Test ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
+        continue-on-error: true
+        shell: bash
+        run: |
+          for d in duckdb-old-${{ matrix.versions.old_name }}/benchmark/micro/*/; do
+            file_name="regression_output_micro_extended_${{ matrix.versions.new_name }}_${{ matrix.versions.old_name }}.txt"
+            micro_benchmarks="duckdb-old-${{ matrix.versions.old_name }}/.github/regression/${d%/}_micro_extended"
+            find "$d" -name ".*.benchmark" | sort > ${micro_benchmarks}.csv
+
+            ls duckdb-old-${{ matrix.versions.old_name }}/.github/regression/micro_extended.csv
+
+            python duckdb-curr-${{ matrix.versions.new_name }}/scripts/regression/test_runner.py \
+              --old=duckdb-old-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner \
+              --new=duckdb-curr-${{ matrix.versions.new_name }}/build/release/benchmark/benchmark_runner \
+              --benchmarks=${micro_benchmarks}.csv --disable-timeout \
+              --regression-threshold-seconds=${{ env.REGESSION_THRESHOLD_SECONDS }} --verbose >> "${file_name}"
+          done
+          
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: ${{ matrix.versions.new_name }}_${{ matrix.versions.old_name }}
+          path: regression_*_${{ matrix.versions.new_name }}_${{ matrix.versions.old_name }}.txt
+          if-no-files-found: error
+
+  # collect-issues:
+  #   name: ISSUES - ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
+  #   needs: 
+  #     - define-matrix
+  #     - build-and-setup
+  #     - run-regression-tests
+  #   if: always()
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix: 
+  #       versions: ${{ fromJSON(needs.define-matrix.outputs.versions) }}
+  #   outputs:
+  #     regressions: ${{ steps.collect.outputs.regressions }}
+
+  #   steps:
+  #     - name: Download reports from calling workflow
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #           name: report.txt
+  #           repository: ${{ env.gh_issue_repo }}
+  #           run-id: ${{ inputs.run_id }}
+
+  #     - name: Collect issues on Benchmarks
+  #       id: collect
+  #       shell: bash
+  #       run: |
+  #         header_written=false
+
+  #         for output in $(ls "regression_*_${{ matrix.versions.new_name }}_${{ matrix.versions.old_name }}.txt"); do
+  #           echo "Processing output file $output..."
+  #           # Check if regressions are detected in the current file
+  #           if ! grep -q "NO REGRESSIONS DETECTED" $output; then
+  #             # Retrieve benchmark name from the regression_outputs file
+  #             test_name=$(echo $output | awk -F'_' '{print $3,$4}')
+              
+  #             # Check if the header has already been written
+  #             if [ "$header_written" = false ]; then
+  #               echo "Adding a header..."
+  #               printf "### Regression detected between \`${{ matrix.versions.new_name }}\` and \`${{ matrix.versions.old_name }}\`\n" >> "issue_body.txt"
+  #               printf "Hash info:\n" >> "issue_body.txt"
+  #               printf "|  | Branch | SHA |\n" >> "issue_body.txt"
+  #               printf "|:-|:-------|:----|\n" >> "issue_body.txt"
+  #               printf "| **NEW** | ${{ matrix.versions.new_name }} | ${{ matrix.versions.new_sha }} |\n" >> "issue_body.txt"
+  #               printf "| **OLD** | ${{ matrix.versions.old_name }} | ${{ matrix.versions.old_sha }} |\n" >> "issue_body.txt"
+  #               printf "#### List of regressed tests\n" >> "issue_body.txt"
+
+  #               header_written=true
+  #             fi
+
+  #             # Add regressed tests data into the issue_body file
+  #             printf -- "- **%s**\n" "$test_name" >> "issue_body.txt"
+  #             printf -- "\`\`\`\n%s\n\`\`\`\n" "$(awk '/REGRESSIONS DETECTED/,/OTHER TIMINGS/' $output)" >> "issue_body.txt"
+  #             echo "Regressions detected in $test_name $output. An issue should be filed."
+  #             echo "regressions=true" >> $GITHUB_OUTPUT
+  #           else
+  #             echo "No Regressions Detected."
+  #             echo "regressions=false" >> $GITHUB_OUTPUT
+  #           fi
+  #         done
+
+  # file-issue:
+  #   name: File Issue
+  #   if: ${{ contains(github.ref_name, 'main') && needs.collect-issues.outputs.regressions != 'false' }}
+  #   needs: 
+  #     - build-and-setup
+  #     - run-regression-tests
+  #     - collect-issues
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: File issue on preparation steps
+  #       shell: bash
+  #       if: |
+  #           contains(github.ref_name, 'main') && 
+  #           (needs.configure-mount-and-download-benchmark-data.result != 'success' ||
+  #           needs.build-and-setup.result != 'success')
+  #       run: |
+  #         echo -e "Benchmark preparation steps have failed, please check the \
+  #           [workflow run](https://github.com/duckdblabs/duckdb-internal/actions/runs/${{ github.run_id }}) for details.\n\n" > report.txt
+
+  #     - name: Create Regressions Report
+  #       shell: bash
+  #       working-directory: ${{ env.mounted_directory_name }}
+  #       run: |
+  #         if grep -q "REGRESSIONS DETECTED" issue_body.txt; then
+  #           echo "Regressions detected, GitHub issue will be filed."
+  #           echo "# Regression tests" >> report.txt
+  #           cat issue_body.txt >> report.txt
+  #           echo "Latest WeeklyRegression run: [Run Link](https://github.com/duckdblabs/duckdb-internal/actions/runs/${{ github.run_id }})" >> report.txt
+  #         fi
+
+  #     - name: Create Issue
+  #       if: success()
+  #       shell: bash
+  #       working-directory: ${{ env.mounted_directory_name }}
+  #       run: |
+  #         if [ -f report.txt ]; then
+  #           # create issue
+  #           gh issue create --repo ${{ env.gh_issue_repo }} --title "Weekly Regression Test Failure" --body-file report.txt
+  #         fi
+
+  # shutdown:
+  #   name: shut down
+  #   if: always()
+  #   runs-on: ubuntu-latest
+  #   needs:
+  #     - start-runner
+  #     - file-issue
+
+  #   steps:
+  #     - name: shutdown
+  #       shell: bash
+  #       run: sudo shutdown
