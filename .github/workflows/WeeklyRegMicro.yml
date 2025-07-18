@@ -119,6 +119,13 @@ jobs:
           cd duckdb
           python scripts/create_pairs_matrix.py
 
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pairs
+          path: ${{ env.mounted_directory_name }}/duckdb_previous_version_pairs.json
+          if-no-files-found: error
+
       - name: move pairs.json
         run: mv ${{ env.mounted_directory_name }}/duckdb_previous_version_pairs.json .
           
@@ -128,13 +135,6 @@ jobs:
         run: |
           pairs=$(cat ../duckdb_previous_version_pairs.json | jq -c '.')
           echo "pairs=$pairs" >> $GITHUB_OUTPUT
-          
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: pairs
-          path: ${{ env.mounted_directory_name }}/duckdb_previous_version_pairs.json
-          if-no-files-found: error
 
   build-and-setup:
     name: BUILD - ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
