@@ -4,9 +4,9 @@ on:
   #   - cron:  '0 1 * * MON' # runs at 2am CET MONDAY
   workflow_dispatch:
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref || '' }}-${{ github.base_ref || '' }}-${{ github.ref != 'refs/heads/main' || github.sha }}
-  cancel-in-progress: true
+# concurrency:
+#   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref || '' }}-${{ github.base_ref || '' }}-${{ github.ref != 'refs/heads/main' || github.sha }}
+#   cancel-in-progress: true
 
 env:
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -111,14 +111,21 @@ jobs:
           repository: 'duckdb/duckdb'
           fetch-depth: 0
           path: ${{ env.mounted_directory_name}}/duckdb
-      
+
       - name: create pairs.json
         working-directory: ${{ env.mounted_directory_name }}
         run: |
           mv scripts/scripts/create_pairs_matrix.py duckdb/scripts
           cd duckdb
           python scripts/create_pairs_matrix.py
-      
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pairs
+          path: ${{ env.mounted_directory_name }}/duckdb_previous_version_pairs.json
+          if-no-files-found: error
+
       - name: move pairs.json
         run: mv ${{ env.mounted_directory_name }}/duckdb_previous_version_pairs.json .
           
@@ -133,7 +140,6 @@ jobs:
     name: BUILD - ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
     needs: 
       - define-matrix
-      - configure-mount-and-download-benchmark-data
     strategy:
       matrix:
         versions: ${{ fromJSON(needs.define-matrix.outputs.versions) }}
@@ -175,6 +181,22 @@ jobs:
           cd ..
           cd duckdb-old-${{ matrix.versions.old_name }} && make clean && make
 
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: duckdb-old-${{ matrix.versions.old_name }}
+          path: ${{ env.mounted_directory_name }}/duckdb-old-${{ matrix.versions.old_name }}
+          if-no-files-found: ignore
+          overwrite: true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: duckdb-curr-${{ matrix.versions.new_name }}
+          path: ${{ env.mounted_directory_name }}/duckdb-curr-${{ matrix.versions.new_name }}
+          if-no-files-found: ignore
+          overwrite: true
+
       - name: Set up benchmarks 
         shell: bash
         working-directory: ${{ env.mounted_directory_name }}/duckdb-old-${{ matrix.versions.old_name }}
@@ -185,60 +207,80 @@ jobs:
           mkdir ../duckdb-curr-${{ matrix.versions.new_name }}/benchmark
           cp -r benchmark ../duckdb-curr-${{ matrix.versions.new_name }}
 
-  #     - name: Link duckdb-curr/duckdb_benchmark_data to tpch_sf100.duckdb and tpcds_sf100.duckdb
-  #       shell: bash 
-  #       working-directory: ${{ env.mounted_directory_name }}/duckdb-curr-${{ matrix.versions.new_name }}
-  #       run: |
-  #         # make sure there is no duckdb_benchmark_data left over from the previous run
-  #         rm -rf duckdb_benchmark_data
-  #         mkdir duckdb_benchmark_data
-  #         cd duckdb_benchmark_data
-  #         ln -s ${{ github.workspace }}/${{ env.mounted_directory_name }}/tpch_sf100.duckdb .
-  #         # ln -s ${{ github.workspace }}/${{ env.mounted_directory_name }}/tpcds_sf100.duckdb .
+      - name: Link duckdb-curr/duckdb_benchmark_data to tpch_sf100.duckdb and tpcds_sf100.duckdb
+        shell: bash 
+        working-directory: ${{ env.mounted_directory_name }}/duckdb-curr-${{ matrix.versions.new_name }}
+        run: |
+          # make sure there is no duckdb_benchmark_data left over from the previous run
+          rm -rf duckdb_benchmark_data
+          mkdir duckdb_benchmark_data
+          cd duckdb_benchmark_data
+          ln -s ${{ github.workspace }}/${{ env.mounted_directory_name }}/tpch_sf100.duckdb .
+          # ln -s ${{ github.workspace }}/${{ env.mounted_directory_name }}/tpcds_sf100.duckdb .
     
-  #     - name: Link duckdb-old/duckdb_benchmark_data to tpch_sf100.duckdb and tpcds_sf100.duckdb
-  #       shell: bash 
-  #       working-directory: ${{ env.mounted_directory_name }}/duckdb-old-${{ matrix.versions.old_name }}
-  #       run: |
-  #         # make sure there is no duckdb_benchmark_data left over from the previous run
-  #         rm -rf duckdb_benchmark_data
-  #         mkdir duckdb_benchmark_data
-  #         cd duckdb_benchmark_data
-  #         ln -s ${{ github.workspace }}/${{ env.mounted_directory_name }}/tpch_sf100.duckdb .
-  #         # ln -s ${{ github.workspace }}/${{ env.mounted_directory_name }}/tpcds_sf100.duckdb .
+      - name: Link duckdb-old/duckdb_benchmark_data to tpch_sf100.duckdb and tpcds_sf100.duckdb
+        shell: bash 
+        working-directory: ${{ env.mounted_directory_name }}/duckdb-old-${{ matrix.versions.old_name }}
+        run: |
+          # make sure there is no duckdb_benchmark_data left over from the previous run
+          rm -rf duckdb_benchmark_data
+          mkdir duckdb_benchmark_data
+          cd duckdb_benchmark_data
+          ln -s ${{ github.workspace }}/${{ env.mounted_directory_name }}/tpch_sf100.duckdb .
+          # ln -s ${{ github.workspace }}/${{ env.mounted_directory_name }}/tpcds_sf100.duckdb .          
+
+  call-reusable:
+    needs:
+      - build-and-setup
+    uses: hmeriann/nbc/.github/workflows/MicroExtended.yml@micro-extended
+    with:
+      run_id: ${{ github.run_id }}
         
     
-  run-regression-tests:
-    name: TEST - ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
-    if: always()
-    needs: 
-      - define-matrix
-      - configure-mount-and-download-benchmark-data
-      - build-and-setup
+  # run-regression-tests:
+  #   name: TEST - ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
+  #   if: always()
+  #   needs: 
+  #     - define-matrix
+  #     - configure-mount-and-download-benchmark-data
+  #     - build-and-setup
       
-    runs-on: self-hosted
-    strategy:
-      fail-fast: false
-      matrix:
-        versions: ${{ fromJSON(needs.define-matrix.outputs.versions) }}
-    steps:          
-      - name: Run Regression Test ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
-        continue-on-error: true
-        shell: bash
-        working-directory: ${{ env.mounted_directory_name }}
-        run: |
-          ls duckdb-curr-${{ matrix.versions.new_name }}/benchmark/micro/**/*.benchmark > .github/regression/micro.csv
-          grep -v "arrow" .github/regression/micro.csv > tmp && mv tmp .github/regression/micro.csv
-           python duckdb-curr-${{ matrix.versions.new_name }}/scripts/regression/test_runner.py \
-              --old=duckdb-old-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner \
-              --new=duckdb-curr-${{ matrix.versions.new_name }}/build/release/benchmark/benchmark_runner \
-              --benchmarks=duckdb-curr-${{ matrix.versions.new_name }}/.github/regression/micro.csv \
-              --verbose > REPORT
+  #   runs-on: self-hosted
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       versions: ${{ fromJSON(needs.define-matrix.outputs.versions) }}
+  #   steps:          
+  #     - name: Run Regression Test ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
+  #       continue-on-error: true
+  #       shell: bash
+  #       working-directory: ${{ env.mounted_directory_name }}
+  #       run: |
+  #         ls duckdb-curr-${{ matrix.versions.new_name }}/benchmark/micro/**/*.benchmark > .github/regression/micro.csv
+  #         grep -v "arrow" .github/regression/micro.csv > tmp && mv tmp .github/regression/micro.csv
+  #          python duckdb-curr-${{ matrix.versions.new_name }}/scripts/regression/test_runner.py \
+  #             --old=duckdb-old-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner \
+  #             --new=duckdb-curr-${{ matrix.versions.new_name }}/build/release/benchmark/benchmark_runner \
+  #             --benchmarks=duckdb-curr-${{ matrix.versions.new_name }}/.github/regression/micro.csv \
+  #             --verbose > REPORT
           
-      - name: Upload results
-        uses: actions/upload-artifact@v4
-        if: success()
-        with:
-          name: REPORT
-          path: REPORT
-          if-no-files-found: error
+  #     - name: Upload results
+  #       uses: actions/upload-artifact@v4
+  #       if: success()
+  #       with:
+  #         name: REPORT
+  #         path: REPORT
+  #         if-no-files-found: error
+
+  shutdown:
+    name: shut down
+    if: always()
+    runs-on: self-hosted
+    needs:
+      - start-runner
+      - define-matrix
+      - call-reusable
+    steps:
+      - name: shutdown
+        shell: bash
+        run: sudo shutdown
