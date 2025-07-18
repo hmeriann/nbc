@@ -16,7 +16,8 @@ on:
 
 env:
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  gh_issue_repo: duckdblabs/duckdb-internal
+  gh_issue_repo: hmeriann/nbc
+  # gh_issue_repo: duckdblabs/duckdb-internal
   REGESSION_THRESHOLD_SECONDS: 1.0
 
 jobs:
@@ -31,8 +32,8 @@ jobs:
         uses: actions/download-artifact@v4
         with:
             name: pairs
-            repository: ${{ env.gh_issue_repo }}
-            run-id: '16371596239'
+            repository: 'hmeriann/nbc'
+            run-id: ${{ inputs.run_id }}
               
       - name: Read JSON and create version pairs matrix
         id: create-version-pairs
@@ -56,15 +57,14 @@ jobs:
         with:
             name: duckdb-old-${{ matrix.versions.old_name }}
             repository: ${{ env.gh_issue_repo }}
-            run-id: '16371596239'
-            # run-id: ${{ inputs.run_id }}
+            run-id: ${{ inputs.run_id }}
 
       - name: Download duckdb new version from calling workflow
         uses: actions/download-artifact@v4
         with:
             name: duckdb-curr-${{ matrix.versions.new_name }}
             repository: ${{ env.gh_issue_repo }}
-            run-id: '16371596239'
+            run-id: ${{ inputs.run_id }}
 
       - name: Run Regression Test ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
         continue-on-error: true
