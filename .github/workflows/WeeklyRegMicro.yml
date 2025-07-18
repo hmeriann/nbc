@@ -220,7 +220,7 @@ jobs:
 
   call-reusable:
     needs:
-      - define-matrix
+      - build-and-setup
     uses: hmeriann/nbc/.github/workflows/MicroExtended.yml@micro-extended
     with:
       run_id: ${{ github.run_id }}
