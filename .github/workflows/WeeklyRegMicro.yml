@@ -180,18 +180,18 @@ jobs:
           cd duckdb-curr-${{ matrix.versions.new_name }} && make clean && make
           cd ..
           cd duckdb-old-${{ matrix.versions.old_name }} && make clean && make
-          
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: duckdb-old-${{ matrix.versions.old_name }}
-          path: ${{ env.mounted_directory_name }}/duckdb-old-${{ matrix.versions.old_name }}/*
+          path: ${{ env.mounted_directory_name }}/duckdb-old-${{ matrix.versions.old_name }}
           if-no-files-found: ignore
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: duckdb-curr-${{ matrix.versions.new_name }}
-          path: ${{ env.mounted_directory_name }}/duckdb-curr-${{ matrix.versions.new_name }}/*
+          path: ${{ env.mounted_directory_name }}/duckdb-curr-${{ matrix.versions.new_name }}
           if-no-files-found: ignore
 
       - name: Set up benchmarks 
