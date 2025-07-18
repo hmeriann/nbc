@@ -67,8 +67,12 @@ jobs:
 
       - name: Run Regression Test ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
         continue-on-error: true
+        working-directory: ${{ github.workspace }}
         shell: bash
         run: |
+          pwd
+          ls -lah
+          ls duckdb-old-${{ matrix.versions.old_name }}
           for d in duckdb-old-${{ matrix.versions.old_name }}/benchmark/micro/*/; do
             file_name="regression_output_micro_extended_${{ matrix.versions.new_name }}_${{ matrix.versions.old_name }}.txt"
             micro_benchmarks="duckdb-old-${{ matrix.versions.old_name }}/.github/regression/${d%/}_micro_extended"
