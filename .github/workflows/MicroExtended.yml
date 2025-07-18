@@ -40,18 +40,17 @@ jobs:
           pairs=$(cat duckdb_previous_version_pairs.json | jq -c '.')
           echo "pairs=$pairs" >> $GITHUB_OUTPUT
 
-  build-and-setup:
-    name: BUILD - ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
+  run-regression-tests:
+    name: TEST - ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
+    if: always()
     needs: 
       - define-matrix
+    runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         versions: ${{ fromJSON(needs.define-matrix.outputs.versions) }}
-      fail-fast: false
-    runs-on: ubuntu-latest
-    env:
-      regression_output: regression_output.txt
-    steps:
+    steps:          
       - name: Download duckdb old version from calling workflow
         uses: actions/download-artifact@v4
         with:
@@ -65,19 +64,7 @@ jobs:
             name: duckdb-curr-${{ matrix.versions.new_name }}
             repository: ${{ env.gh_issue_repo }}
             run-id: ${{ inputs.run_id }}
-    
-  run-regression-tests:
-    name: TEST - ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
-    if: always()
-    needs: 
-      - define-matrix
-      - build-and-setup
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        versions: ${{ fromJSON(needs.define-matrix.outputs.versions) }}
-    steps:          
+
       - name: Run Regression Test ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
         continue-on-error: true
         shell: bash
