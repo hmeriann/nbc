@@ -180,6 +180,19 @@ jobs:
           cd duckdb-curr-${{ matrix.versions.new_name }} && make clean && make
           cd ..
           cd duckdb-old-${{ matrix.versions.old_name }} && make clean && make
+          
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: duckdb-old-${{ matrix.versions.old_name }}
+          path: ${{ env.mounted_directory_name }}/duckdb-old-${{ matrix.versions.old_name }}/*
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: duckdb-curr-${{ matrix.versions.new_name }}
+          path: ${{ env.mounted_directory_name }}/duckdb-curr-${{ matrix.versions.new_name }}/*
+          if-no-files-found: ignore
 
       - name: Set up benchmarks 
         shell: bash
@@ -211,21 +224,7 @@ jobs:
           mkdir duckdb_benchmark_data
           cd duckdb_benchmark_data
           ln -s ${{ github.workspace }}/${{ env.mounted_directory_name }}/tpch_sf100.duckdb .
-          # ln -s ${{ github.workspace }}/${{ env.mounted_directory_name }}/tpcds_sf100.duckdb .
-
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: duckdb-old-${{ matrix.versions.old_name }}
-          path: ${{ env.mounted_directory_name }}/duckdb-old-${{ matrix.versions.old_name }}/*
-          if-no-files-found: error
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: duckdb-curr-${{ matrix.versions.new_name }}
-          path: ${{ env.mounted_directory_name }}/duckdb-curr-${{ matrix.versions.new_name }}/*
-          if-no-files-found: error
-          
+          # ln -s ${{ github.workspace }}/${{ env.mounted_directory_name }}/tpcds_sf100.duckdb .          
 
   call-reusable:
     needs:
