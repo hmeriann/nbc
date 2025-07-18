@@ -32,7 +32,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
             name: pairs
-            repository: 'hmeriann/nbc'
+            repository: ${{ env.gh_issue_repo }}
             run-id: ${{ inputs.run_id }}
               
       - name: Read JSON and create version pairs matrix
@@ -56,6 +56,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
             name: duckdb-old-${{ matrix.versions.old_name }}
+            path: ${{ github.workspace }}
             repository: ${{ env.gh_issue_repo }}
             run-id: ${{ inputs.run_id }}
 
@@ -63,6 +64,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
             name: duckdb-curr-${{ matrix.versions.new_name }}
+            path: ${{ github.workspace }}
             repository: ${{ env.gh_issue_repo }}
             run-id: ${{ inputs.run_id }}
 
