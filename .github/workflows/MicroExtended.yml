@@ -50,55 +50,21 @@ jobs:
       fail-fast: false
     runs-on: ubuntu-latest
     env:
-      GEN: ninja
-      BUILD_BENCHMARK: 1
-      BUILD_TPCH: 1
-      BUILD_TPCDS: 1
-      BUILD_JSON: 1
-      BUILD_HTTPFS: 1
-      BUILD_ICU: 1
-      BUILD_JEMALLOC: 1
-      CORE_EXTENSIONS: "inet"
       regression_output: regression_output.txt
     steps:
-      - name: checkout duckdb-curr (${{ matrix.versions.new_name }})
-        uses: actions/checkout@v4
+      - name: Download duckdb old version from calling workflow
+        uses: actions/download-artifact@v4
         with:
-          repository: 'duckdb/duckdb'
-          ref: ${{ matrix.versions.new_sha }}
-          fetch-depth: 0
-          path: duckdb-curr-${{ matrix.versions.new_name }}
+            name: duckdb-old-${{ matrix.versions.old_name }}
+            repository: ${{ env.gh_issue_repo }}
+            run-id: ${{ inputs.run_id }}
 
-      - name: checkout duckdb-old (${{ matrix.versions.old_name }})
-        uses: actions/checkout@v4
+      - name: Download duckdb new version from calling workflow
+        uses: actions/download-artifact@v4
         with:
-          repository: 'duckdb/duckdb'
-          ref: ${{ matrix.versions.old_sha }}
-          fetch-depth: 0
-          path: duckdb-old-${{ matrix.versions.old_name }}
-
-      - name: Build new (${{ matrix.versions.new_name }}) and old (${{ matrix.versions.old_name }})
-        shell: bash
-        run: |
-          cd duckdb-curr-${{ matrix.versions.new_name }} && make clean && make
-          cd ..
-          cd duckdb-old-${{ matrix.versions.old_name }} && make clean && make
-
-      - name: Set up benchmarks 
-        shell: bash
-        working-directory: duckdb-old-${{ matrix.versions.old_name }}
-        run: |
-          # we do this so new added benchmarks that break duckdb old
-          # do not cause failures.
-          rm -rf ../duckdb-curr-${{ matrix.versions.new_name }}/benchmark
-          mkdir ../duckdb-curr-${{ matrix.versions.new_name }}/benchmark
-          cp -r benchmark ../duckdb-curr-${{ matrix.versions.new_name }}
-
-      # - name: generate micro_extended.csv in duckdb-old-${{ matrix.versions.old_name }}
-      #   shell: bash
-      #   working-directory: duckdb-old-${{ matrix.versions.old_name }}
-      #   run: |
-      #     find benchmark/micro | grep ".*.benchmark" | sort > .github/regression/micro_extended.csv
+            name: duckdb-curr-${{ matrix.versions.new_name }}
+            repository: ${{ env.gh_issue_repo }}
+            run-id: ${{ inputs.run_id }}
     
   run-regression-tests:
     name: TEST - ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
