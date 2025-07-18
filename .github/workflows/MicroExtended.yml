@@ -119,14 +119,14 @@ jobs:
           for d in duckdb-old-${{ matrix.versions.old_name }}/benchmark/micro/*/; do
             file_name="regression_output_micro_extended_${{ matrix.versions.new_name }}_${{ matrix.versions.old_name }}.txt"
             micro_benchmarks="duckdb-old-${{ matrix.versions.old_name }}/.github/regression/${d%/}_micro_extended"
-            find "$d" -name ".*.benchmark" | sort > ${micro_benchmarks}.csv
+            find "$d" -name ".*.benchmark" | sort > "${micro_benchmarks}.csv"
 
             ls duckdb-old-${{ matrix.versions.old_name }}/.github/regression/micro_extended.csv
 
             python duckdb-curr-${{ matrix.versions.new_name }}/scripts/regression/test_runner.py \
               --old=duckdb-old-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner \
-              --new=duckdb-curr-${{ matrix.versions.new_name }}/build/release/benchmark/benchmark_runner \
-              --benchmarks=${micro_benchmarks}.csv --disable-timeout \
+              --new=duckdb-curr-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner \
+              --benchmarks="${micro_benchmarks}.csv" --disable-timeout \
               --regression-threshold-seconds=${{ env.REGESSION_THRESHOLD_SECONDS }} --verbose >> "${file_name}"
           done
           

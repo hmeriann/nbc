@@ -125,100 +125,105 @@ jobs:
           name: pairs
           path: ${{ env.mounted_directory_name }}/duckdb_previous_version_pairs.json
           if-no-files-found: error
+
+  build-and-setup:
+    name: BUILD - ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
+    needs: 
+      - define-matrix
+      - configure-mount-and-download-benchmark-data
+    strategy:
+      matrix:
+        versions: ${{ fromJSON(needs.define-matrix.outputs.versions) }}
+      fail-fast: false
+    runs-on: self-hosted
+    env:
+      GEN: ninja
+      BUILD_BENCHMARK: 1
+      BUILD_TPCH: 1
+      BUILD_TPCDS: 1
+      BUILD_JSON: 1
+      BUILD_HTTPFS: 1
+      BUILD_ICU: 1
+      BUILD_JEMALLOC: 1
+      CORE_EXTENSIONS: "inet"
+      regression_output: regression_output.txt
+    steps:
+      - name: checkout duckdb-curr (${{ matrix.versions.new_name }})
+        uses: actions/checkout@v4
+        with:
+          repository: 'duckdb/duckdb'
+          ref: ${{ matrix.versions.new_sha }}
+          fetch-depth: 0
+          path: ${{ env.mounted_directory_name}}/duckdb-curr-${{ matrix.versions.new_name }}
+
+      - name: checkout duckdb-old (${{ matrix.versions.old_name }})
+        uses: actions/checkout@v4
+        with:
+          repository: 'duckdb/duckdb'
+          ref: ${{ matrix.versions.old_sha }}
+          fetch-depth: 0
+          path: ${{ env.mounted_directory_name}}/duckdb-old-${{ matrix.versions.old_name }}
+
+      - name: Build new (${{ matrix.versions.new_name }}) and old (${{ matrix.versions.old_name }})
+        shell: bash
+        working-directory: ${{ env.mounted_directory_name }}
+        run: |
+          cd duckdb-curr-${{ matrix.versions.new_name }} && make clean && make
+          cd ..
+          cd duckdb-old-${{ matrix.versions.old_name }} && make clean && make
+
+      - name: Set up benchmarks 
+        shell: bash
+        working-directory: ${{ env.mounted_directory_name }}/duckdb-old-${{ matrix.versions.old_name }}
+        run: |
+          # we do this so new added benchmarks that break duckdb old
+          # do not cause failures.
+          rm -rf ../duckdb-curr-${{ matrix.versions.new_name }}/benchmark
+          mkdir ../duckdb-curr-${{ matrix.versions.new_name }}/benchmark
+          cp -r benchmark ../duckdb-curr-${{ matrix.versions.new_name }}
+
+      - name: Link duckdb-curr/duckdb_benchmark_data to tpch_sf100.duckdb and tpcds_sf100.duckdb
+        shell: bash 
+        working-directory: ${{ env.mounted_directory_name }}/duckdb-curr-${{ matrix.versions.new_name }}
+        run: |
+          # make sure there is no duckdb_benchmark_data left over from the previous run
+          rm -rf duckdb_benchmark_data
+          mkdir duckdb_benchmark_data
+          cd duckdb_benchmark_data
+          ln -s ${{ github.workspace }}/${{ env.mounted_directory_name }}/tpch_sf100.duckdb .
+          # ln -s ${{ github.workspace }}/${{ env.mounted_directory_name }}/tpcds_sf100.duckdb .
+    
+      - name: Link duckdb-old/duckdb_benchmark_data to tpch_sf100.duckdb and tpcds_sf100.duckdb
+        shell: bash 
+        working-directory: ${{ env.mounted_directory_name }}/duckdb-old-${{ matrix.versions.old_name }}
+        run: |
+          # make sure there is no duckdb_benchmark_data left over from the previous run
+          rm -rf duckdb_benchmark_data
+          mkdir duckdb_benchmark_data
+          cd duckdb_benchmark_data
+          ln -s ${{ github.workspace }}/${{ env.mounted_directory_name }}/tpch_sf100.duckdb .
+          # ln -s ${{ github.workspace }}/${{ env.mounted_directory_name }}/tpcds_sf100.duckdb .
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: duckdb-old-${{ matrix.versions.old_name }}
+          path: ${{ env.mounted_directory_name }}/duckdb-old-${{ matrix.versions.old_name }}/*
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: duckdb-curr-${{ matrix.versions.new_name }}
+          path: ${{ env.mounted_directory_name }}/duckdb-curr-${{ matrix.versions.new_name }}/*
+          if-no-files-found: error
           
-      # - name: move pairs.json
-      #   run: mv ${{ env.mounted_directory_name }}/duckdb_previous_version_pairs.json .
-          
-      # - name: Read JSON and create version pairs matrix
-      #   working-directory: ${{ env.mounted_directory_name }}
-      #   id: create-version-pairs
-      #   run: |
-      #     pairs=$(cat ../duckdb_previous_version_pairs.json | jq -c '.')
-      #     echo "pairs=$pairs" >> $GITHUB_OUTPUT
+
   call-reusable:
     needs:
       - define-matrix
     uses: hmeriann/nbc/.github/workflows/MicroExtended.yml@micro-extended
     with:
       run_id: ${{ github.run_id }}
-
-  # build-and-setup:
-  #   name: BUILD - ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
-  #   needs: 
-  #     - define-matrix
-  #     - configure-mount-and-download-benchmark-data
-  #   strategy:
-  #     matrix:
-  #       versions: ${{ fromJSON(needs.define-matrix.outputs.versions) }}
-  #     fail-fast: false
-  #   runs-on: self-hosted
-  #   env:
-  #     GEN: ninja
-  #     BUILD_BENCHMARK: 1
-  #     BUILD_TPCH: 1
-  #     BUILD_TPCDS: 1
-  #     BUILD_JSON: 1
-  #     BUILD_HTTPFS: 1
-  #     BUILD_ICU: 1
-  #     BUILD_JEMALLOC: 1
-  #     CORE_EXTENSIONS: "inet"
-  #     regression_output: regression_output.txt
-  #   steps:
-  #     - name: checkout duckdb-curr (${{ matrix.versions.new_name }})
-  #       uses: actions/checkout@v4
-  #       with:
-  #         repository: 'duckdb/duckdb'
-  #         ref: ${{ matrix.versions.new_sha }}
-  #         fetch-depth: 0
-  #         path: ${{ env.mounted_directory_name}}/duckdb-curr-${{ matrix.versions.new_name }}
-
-  #     - name: checkout duckdb-old (${{ matrix.versions.old_name }})
-  #       uses: actions/checkout@v4
-  #       with:
-  #         repository: 'duckdb/duckdb'
-  #         ref: ${{ matrix.versions.old_sha }}
-  #         fetch-depth: 0
-  #         path: ${{ env.mounted_directory_name}}/duckdb-old-${{ matrix.versions.old_name }}
-
-  #     - name: Build new (${{ matrix.versions.new_name }}) and old (${{ matrix.versions.old_name }})
-  #       shell: bash
-  #       working-directory: ${{ env.mounted_directory_name }}
-  #       run: |
-  #         cd duckdb-curr-${{ matrix.versions.new_name }} && make clean && make
-  #         cd ..
-  #         cd duckdb-old-${{ matrix.versions.old_name }} && make clean && make
-
-  #     - name: Set up benchmarks 
-  #       shell: bash
-  #       working-directory: ${{ env.mounted_directory_name }}/duckdb-old-${{ matrix.versions.old_name }}
-  #       run: |
-  #         # we do this so new added benchmarks that break duckdb old
-  #         # do not cause failures.
-  #         rm -rf ../duckdb-curr-${{ matrix.versions.new_name }}/benchmark
-  #         mkdir ../duckdb-curr-${{ matrix.versions.new_name }}/benchmark
-  #         cp -r benchmark ../duckdb-curr-${{ matrix.versions.new_name }}
-
-  #     - name: Link duckdb-curr/duckdb_benchmark_data to tpch_sf100.duckdb and tpcds_sf100.duckdb
-  #       shell: bash 
-  #       working-directory: ${{ env.mounted_directory_name }}/duckdb-curr-${{ matrix.versions.new_name }}
-  #       run: |
-  #         # make sure there is no duckdb_benchmark_data left over from the previous run
-  #         rm -rf duckdb_benchmark_data
-  #         mkdir duckdb_benchmark_data
-  #         cd duckdb_benchmark_data
-  #         ln -s ${{ github.workspace }}/${{ env.mounted_directory_name }}/tpch_sf100.duckdb .
-  #         # ln -s ${{ github.workspace }}/${{ env.mounted_directory_name }}/tpcds_sf100.duckdb .
-    
-  #     - name: Link duckdb-old/duckdb_benchmark_data to tpch_sf100.duckdb and tpcds_sf100.duckdb
-  #       shell: bash 
-  #       working-directory: ${{ env.mounted_directory_name }}/duckdb-old-${{ matrix.versions.old_name }}
-  #       run: |
-  #         # make sure there is no duckdb_benchmark_data left over from the previous run
-  #         rm -rf duckdb_benchmark_data
-  #         mkdir duckdb_benchmark_data
-  #         cd duckdb_benchmark_data
-  #         ln -s ${{ github.workspace }}/${{ env.mounted_directory_name }}/tpch_sf100.duckdb .
-  #         # ln -s ${{ github.workspace }}/${{ env.mounted_directory_name }}/tpcds_sf100.duckdb .
         
     
   # run-regression-tests:
