@@ -76,19 +76,33 @@ jobs:
           pwd
           ls -lah
           ls duckdb-old-${{ matrix.versions.old_name }}
-          for d in duckdb-old-${{ matrix.versions.old_name }}/benchmark/micro/*/; do
-            subdir_name=$(basename "${d%/}")
-            micro_benchmarks="duckdb-old-${{ matrix.versions.old_name }}/${subdir_name}_micro_extended"
-            find "$d" -name ".*.benchmark" | sort > "${micro_benchmarks}.csv"
 
-            ls duckdb-old-${{ matrix.versions.old_name }}/.github/regression/micro_extended.csv
+          find duckdb-old-main/benchmark/micro -name ".*.benchmark" | sort > all_micro_benchmarks.csv
+          # creates micro_benchmarks_chunk_00.csv, micro_benchmarks_chunk_01.csv like files
+          split -l 300 -d --additional-suffix=.csv all_micro_benchmarks.csv micro_benchmarks_chunk_
 
-            python duckdb-curr-${{ matrix.versions.new_name }}/scripts/regression/test_runner.py \
-              --old=duckdb-old-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner \
-              --new=duckdb-curr-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner \
-              --benchmarks="${micro_benchmarks}.csv" --disable-timeout \
-              --regression-threshold-seconds=${{ env.REGESSION_THRESHOLD_SECONDS }} --verbose >> "${file_name}"
+            for chunk in micro_benchmarks_chunk_*.csv; do
+                python duckdb-curr-${{ matrix.versions.new_name }}/scripts/regression/test_runner.py \
+                --old=duckdb-old-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner \
+                --new=duckdb-curr-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner \
+                --benchmarks="$chunk" --disable-timeout \
+                --regression-threshold-seconds=${{ env.REGESSION_THRESHOLD_SECONDS }} --verbose >> "regression_output_${chunk}.txt"
           done
+
+
+          # for d in duckdb-old-${{ matrix.versions.old_name }}/benchmark/micro/*/; do
+          #   subdir_name=$(basename "${d%/}")
+          #   micro_benchmarks="duckdb-old-${{ matrix.versions.old_name }}/${subdir_name}_micro_extended"
+          #   find "$d" -name ".*.benchmark" | sort > "${micro_benchmarks}.csv"
+
+          #   ls duckdb-old-${{ matrix.versions.old_name }}/.github/regression/micro_extended.csv
+
+            # python duckdb-curr-${{ matrix.versions.new_name }}/scripts/regression/test_runner.py \
+            #   --old=duckdb-old-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner \
+            #   --new=duckdb-curr-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner \
+          #     --benchmarks="${micro_benchmarks}.csv" --disable-timeout \
+          #     --regression-threshold-seconds=${{ env.REGESSION_THRESHOLD_SECONDS }} --verbose >> "${file_name}"
+          # done
           
       - name: Upload results
         uses: actions/upload-artifact@v4
