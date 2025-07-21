@@ -85,12 +85,15 @@ jobs:
           chmod +x duckdb-old-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner
           chmod +x duckdb-curr-${{ matrix.versions.new_name }}/build/release/benchmark/benchmark_runner
 
+          cat $chunk"
+
           for chunk in micro_benchmarks_chunk_*.csv; do
             python duckdb-curr-${{ matrix.versions.new_name }}/scripts/regression/test_runner.py \
             --old=duckdb-old-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner \
             --new=duckdb-curr-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner \
             --benchmarks="$chunk" --disable-timeout \
-            --regression-threshold-seconds=${{ env.REGESSION_THRESHOLD_SECONDS }} --verbose >> "regression_output_${chunk}.txt"
+            --regression-threshold-seconds=${{ env.REGESSION_THRESHOLD_SECONDS }} --verbose 
+            # --regression-threshold-seconds=${{ env.REGESSION_THRESHOLD_SECONDS }} --verbose >> "regression_output_${chunk}.txt"
           done
 
 
