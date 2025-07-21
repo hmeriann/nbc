@@ -77,8 +77,8 @@ jobs:
           ls -lah
           ls duckdb-old-${{ matrix.versions.old_name }}
           for d in duckdb-old-${{ matrix.versions.old_name }}/benchmark/micro/*/; do
-            file_name="regression_output_micro_extended_${{ matrix.versions.new_name }}_${{ matrix.versions.old_name }}.txt"
-            micro_benchmarks="duckdb-old-${{ matrix.versions.old_name }}/.github/regression/${d%/}_micro_extended"
+            subdir_name=$(basename "${d%/}")
+            micro_benchmarks="duckdb-old-${{ matrix.versions.old_name }}/${subdir_name}_micro_extended"
             find "$d" -name ".*.benchmark" | sort > "${micro_benchmarks}.csv"
 
             ls duckdb-old-${{ matrix.versions.old_name }}/.github/regression/micro_extended.csv
