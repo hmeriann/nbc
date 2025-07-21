@@ -84,8 +84,9 @@ jobs:
 
           chmod +x duckdb-old-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner
           chmod +x duckdb-curr-${{ matrix.versions.new_name }}/build/release/benchmark/benchmark_runner
+          chmod a+r duckdb-old-${{ matrix.versions.old_name }}/build/release/libduckdb.so
+          chmod a+r duckdb-curr-${{ matrix.versions.new_name }}/build/release/libduckdb.so
 
-          
           for chunk in micro_benchmarks_chunk_*.csv; do
             cat "$chunk"
             python duckdb-curr-${{ matrix.versions.new_name }}/scripts/regression/test_runner.py \
