@@ -75,18 +75,19 @@ jobs:
         run: |
           pwd
           ls -lah
-          ls duckdb-old-${{ matrix.versions.old_name }}
+          # rm -Rf duckdb-old-${{ matrix.versions.old_name }}/duckdb_benchmark_data
+          # mkdir -p duckdb-old-${{ matrix.versions.old_name }}/duckdb_benchmark_data
 
-          find duckdb-old-${{ matrix.versions.old_name }}/benchmark/micro -name ".*.benchmark" | sort > all_micro_benchmarks.csv
+          find duckdb-old-${{ matrix.versions.old_name }}/benchmark/micro -type f -name "*.benchmark" | sort > all_micro_benchmarks.csv
           # creates micro_benchmarks_chunk_00.csv, micro_benchmarks_chunk_01.csv like files
-          split -l 300 -d --additional-suffix=.csv all_micro_benchmarks.csv micro_benchmarks_chunk_
+          split -l 30 -d --additional-suffix=.csv all_micro_benchmarks.csv micro_benchmarks_chunk_
 
-            for chunk in micro_benchmarks_chunk_*.csv; do
-                python duckdb-curr-${{ matrix.versions.new_name }}/scripts/regression/test_runner.py \
-                --old=duckdb-old-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner \
-                --new=duckdb-curr-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner \
-                --benchmarks="$chunk" --disable-timeout \
-                --regression-threshold-seconds=${{ env.REGESSION_THRESHOLD_SECONDS }} --verbose >> "regression_output_${chunk}.txt"
+          for chunk in micro_benchmarks_chunk_*.csv; do
+            python duckdb-curr-${{ matrix.versions.new_name }}/scripts/regression/test_runner.py \
+            --old=duckdb-old-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner \
+            --new=duckdb-curr-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner \
+            --benchmarks="$chunk" --disable-timeout \
+            --regression-threshold-seconds=${{ env.REGESSION_THRESHOLD_SECONDS }} --verbose >> "regression_output_${chunk}.txt"
           done
 
 
