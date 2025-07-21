@@ -77,7 +77,7 @@ jobs:
           ls -lah
           ls duckdb-old-${{ matrix.versions.old_name }}
 
-          find duckdb-old-main/benchmark/micro -name ".*.benchmark" | sort > all_micro_benchmarks.csv
+          find duckdb-old-${{ matrix.versions.old_name }}/benchmark/micro -name ".*.benchmark" | sort > all_micro_benchmarks.csv
           # creates micro_benchmarks_chunk_00.csv, micro_benchmarks_chunk_01.csv like files
           split -l 300 -d --additional-suffix=.csv all_micro_benchmarks.csv micro_benchmarks_chunk_
 
