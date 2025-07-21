@@ -82,6 +82,9 @@ jobs:
           # creates micro_benchmarks_chunk_00.csv, micro_benchmarks_chunk_01.csv like files
           split -l 30 -d --additional-suffix=.csv all_micro_benchmarks.csv micro_benchmarks_chunk_
 
+          chmod +x duckdb-old-main/build/release/benchmark/benchmark_runner
+          chmod +x duckdb-curr-main/build/release/benchmark/benchmark_runner
+
           for chunk in micro_benchmarks_chunk_*.csv; do
             python duckdb-curr-${{ matrix.versions.new_name }}/scripts/regression/test_runner.py \
             --old=duckdb-old-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner \
