@@ -16,7 +16,8 @@ on:
 
 env:
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  gh_issue_repo: duckdblabs/duckdb-internal
+  gh_issue_repo: hmeriann/nbc
+  # gh_issue_repo: duckdblabs/duckdb-internal
   REGESSION_THRESHOLD_SECONDS: 1.0
 
 jobs:
@@ -55,6 +56,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
             name: duckdb-old-${{ matrix.versions.old_name }}
+            path: ${{ github.workspace }}/duckdb-old-${{ matrix.versions.old_name }}
             repository: ${{ env.gh_issue_repo }}
             run-id: ${{ inputs.run_id }}
 
@@ -62,6 +64,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
             name: duckdb-curr-${{ matrix.versions.new_name }}
+            path: ${{ github.workspace }}/duckdb-curr-${{ matrix.versions.new_name }}
             repository: ${{ env.gh_issue_repo }}
             run-id: ${{ inputs.run_id }}
 
@@ -72,20 +75,27 @@ jobs:
         run: |
           pwd
           ls -lah
-          ls duckdb-old-${{ matrix.versions.old_name }}
-          for d in duckdb-old-${{ matrix.versions.old_name }}/benchmark/micro/*/; do
-            file_name="regression_output_micro_extended_${{ matrix.versions.new_name }}_${{ matrix.versions.old_name }}.txt"
-            micro_benchmarks="duckdb-old-${{ matrix.versions.old_name }}/.github/regression/${d%/}_micro_extended"
-            find "$d" -name ".*.benchmark" | sort > "${micro_benchmarks}.csv"
+          # rm -Rf duckdb-old-${{ matrix.versions.old_name }}/duckdb_benchmark_data
+          # mkdir -p duckdb-old-${{ matrix.versions.old_name }}/duckdb_benchmark_data
 
-            ls duckdb-old-${{ matrix.versions.old_name }}/.github/regression/micro_extended.csv
+          find duckdb-old-${{ matrix.versions.old_name }}/benchmark/micro -type f -name "*.benchmark" | sort > all_micro_benchmarks.csv
+          # creates micro_benchmarks_chunk_00.csv, micro_benchmarks_chunk_01.csv like files
+          split -l 30 -d --additional-suffix=.csv all_micro_benchmarks.csv micro_benchmarks_chunk_
 
+          chmod +x duckdb-old-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner
+          chmod +x duckdb-curr-${{ matrix.versions.new_name }}/build/release/benchmark/benchmark_runner
+          chmod a+r duckdb-old-${{ matrix.versions.old_name }}/build/release/src/libduckdb.so
+          chmod a+r duckdb-curr-${{ matrix.versions.new_name }}/build/release/src/libduckdb.so
+
+          for chunk in micro_benchmarks_chunk_*.csv; do
+            cat "$chunk"
             python duckdb-curr-${{ matrix.versions.new_name }}/scripts/regression/test_runner.py \
-              --old=duckdb-old-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner \
-              --new=duckdb-curr-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner \
-              --benchmarks="${micro_benchmarks}.csv" --disable-timeout \
-              --regression-threshold-seconds=${{ env.REGESSION_THRESHOLD_SECONDS }} --verbose >> "${file_name}"
+            --old=duckdb-old-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner \
+            --new=duckdb-curr-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner \
+            --benchmarks="$chunk" --disable-timeout \
+            --regression-threshold-seconds=${{ env.REGESSION_THRESHOLD_SECONDS }} --verbose 
           done
+            # --regression-threshold-seconds=${{ env.REGESSION_THRESHOLD_SECONDS }} --verbose >> "regression_output_${chunk}.txt"
           
       - name: Upload results
         uses: actions/upload-artifact@v4
