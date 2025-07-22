@@ -95,6 +95,7 @@ jobs:
             --benchmarks="$chunk" --disable-timeout \
             --regression-threshold-seconds=${{ env.REGESSION_THRESHOLD_SECONDS }} --verbose 
           done
+
             # --regression-threshold-seconds=${{ env.REGESSION_THRESHOLD_SECONDS }} --verbose >> "regression_output_${chunk}.txt"
           
       - name: Upload results
