@@ -35,11 +35,18 @@ jobs:
             repository: ${{ env.gh_issue_repo }}
             run-id: ${{ inputs.run_id }}
               
-      - name: Read JSON and create version pairs matrix
+      # - name: Read JSON and create version pairs matrix
+      #   id: create-version-pairs
+      #   run: |
+      #     pairs=$(cat duckdb_previous_version_pairs.json | jq -c '.')
+      #     echo "pairs=$pairs" >> $GITHUB_OUTPUT
+
+      - name: Mock version pair for tests
         id: create-version-pairs
         run: |
-          pairs=$(cat duckdb_previous_version_pairs.json | jq -c '.')
+          pairs='[{"new_name":"main","new_sha":"9162313f764fef817988166f9ab465786162a28b","old_name":"main","old_sha":"18cea53e20f6c88be3f9d541d2a019a27efa0810"}]'
           echo "pairs=$pairs" >> $GITHUB_OUTPUT
+
 
   run-regression-tests:
     name: TEST - ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
@@ -52,6 +59,7 @@ jobs:
       matrix:
         versions: ${{ fromJSON(needs.define-matrix.outputs.versions) }}
     steps:          
+      - uses: actions/checkout@v4
       - name: Download duckdb old version from calling workflow
         uses: actions/download-artifact@v4
         with:
@@ -67,6 +75,9 @@ jobs:
             path: ${{ github.workspace }}/duckdb-curr-${{ matrix.versions.new_name }}
             repository: ${{ env.gh_issue_repo }}
             run-id: ${{ inputs.run_id }}
+
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
 
       - name: Run Regression Test ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
         continue-on-error: true
@@ -89,8 +100,7 @@ jobs:
           # export LD_LIBRARY_PATH=duckdb-old-${{ matrix.versions.old_name }}/build/release/src:$LD_LIBRARY_PATH
           # export LD_LIBRARY_PATH=duckdb-curr-${{ matrix.versions.new_name }}/build/release/src:$LD_LIBRARY_PATH
           
-          ls duckdb-old-${{ matrix.versions.old_name }}/build/release/
-          ls duckdb-old-${{ matrix.versions.old_name }}/build/release/src
+          ls -lah duckdb-old-${{ matrix.versions.old_name }}/build/release/src
 
           for chunk in micro_benchmarks_chunk_*.csv; do
             cat "$chunk"
