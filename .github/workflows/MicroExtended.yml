@@ -88,6 +88,10 @@ jobs:
           chmod a+r duckdb-curr-${{ matrix.versions.new_name }}/build/release/src/libduckdb.so
           export LD_LIBRARY_PATH=duckdb-old-${{ matrix.versions.old_name }}/build/release/src:$LD_LIBRARY_PATH
           export LD_LIBRARY_PATH=duckdb-curr-${{ matrix.versions.new_name }}/build/release/src:$LD_LIBRARY_PATH
+          
+          ls build/release/
+          echo $LD_LIBRARY_PATH
+          ls build/release/src
 
           for chunk in micro_benchmarks_chunk_*.csv; do
             cat "$chunk"
