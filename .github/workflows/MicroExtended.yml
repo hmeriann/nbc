@@ -82,16 +82,15 @@ jobs:
           # creates micro_benchmarks_chunk_00.csv, micro_benchmarks_chunk_01.csv like files
           split -l 30 -d --additional-suffix=.csv all_micro_benchmarks.csv micro_benchmarks_chunk_
 
+          chmod a+r duckdb-old-${{ matrix.versions.old_name }}
+          chmod a+r duckdb-curr-${{ matrix.versions.new_name }}
           chmod +x duckdb-old-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner
           chmod +x duckdb-curr-${{ matrix.versions.new_name }}/build/release/benchmark/benchmark_runner
-          chmod a+r duckdb-old-${{ matrix.versions.old_name }}/build/release/src/libduckdb.so
-          chmod a+r duckdb-curr-${{ matrix.versions.new_name }}/build/release/src/libduckdb.so
-          export LD_LIBRARY_PATH=duckdb-old-${{ matrix.versions.old_name }}/build/release/src:$LD_LIBRARY_PATH
-          export LD_LIBRARY_PATH=duckdb-curr-${{ matrix.versions.new_name }}/build/release/src:$LD_LIBRARY_PATH
+          # export LD_LIBRARY_PATH=duckdb-old-${{ matrix.versions.old_name }}/build/release/src:$LD_LIBRARY_PATH
+          # export LD_LIBRARY_PATH=duckdb-curr-${{ matrix.versions.new_name }}/build/release/src:$LD_LIBRARY_PATH
           
-          ls build/release/
-          echo $LD_LIBRARY_PATH
-          ls build/release/src
+          ls duckdb-old-${{ matrix.versions.old_name }}/build/release/
+          ls duckdb-old-${{ matrix.versions.old_name }}/build/release/src
 
           for chunk in micro_benchmarks_chunk_*.csv; do
             cat "$chunk"
