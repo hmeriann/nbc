@@ -84,8 +84,10 @@ jobs:
 
           chmod +x duckdb-old-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner
           chmod +x duckdb-curr-${{ matrix.versions.new_name }}/build/release/benchmark/benchmark_runner
-          chmod a+r duckdb-old-${{ matrix.versions.old_name }}/src/libduckdb.so
-          chmod a+r duckdb-curr-${{ matrix.versions.new_name }}/src/libduckdb.so
+          chmod a+r duckdb-old-${{ matrix.versions.old_name }}/build/release/src/libduckdb.so
+          chmod a+r duckdb-curr-${{ matrix.versions.new_name }}/build/release/src/libduckdb.so
+          export LD_LIBRARY_PATH=duckdb-old-${{ matrix.versions.old_name }}/build/release/src:$LD_LIBRARY_PATH
+          export LD_LIBRARY_PATH=duckdb-curr-${{ matrix.versions.new_name }}/build/release/src:$LD_LIBRARY_PATH
 
           for chunk in micro_benchmarks_chunk_*.csv; do
             cat "$chunk"
