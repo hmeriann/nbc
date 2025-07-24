@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       run_id:
-        description: 'Calling workflow run id'
+        description: "Calling workflow run id"
         type: string
 
 # concurrency:
@@ -31,10 +31,10 @@ jobs:
       - name: Download duckdb_previous_version_pairs.json from calling workflow
         uses: actions/download-artifact@v4
         with:
-            name: pairs
-            repository: ${{ env.gh_issue_repo }}
-            run-id: ${{ inputs.run_id }}
-              
+          name: pairs
+          repository: ${{ env.gh_issue_repo }}
+          run-id: ${{ inputs.run_id }}
+
       # - name: Read JSON and create version pairs matrix
       #   id: create-version-pairs
       #   run: |
@@ -47,18 +47,17 @@ jobs:
           pairs='[{"new_name":"main","new_sha":"9162313f764fef817988166f9ab465786162a28b","old_name":"main","old_sha":"18cea53e20f6c88be3f9d541d2a019a27efa0810"}]'
           echo "pairs=$pairs" >> $GITHUB_OUTPUT
 
-
   run-regression-tests:
     name: TEST - ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
     if: always()
-    needs: 
+    needs:
       - define-matrix
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         versions: ${{ fromJSON(needs.define-matrix.outputs.versions) }}
-    steps:          
+    steps:
       # - uses: actions/checkout@v4
       # - name: Download duckdb old version from calling workflow
       #   uses: actions/download-artifact@v4
@@ -79,7 +78,7 @@ jobs:
       - name: checkout duckdb-curr (${{ matrix.versions.new_name }})
         uses: actions/checkout@v4
         with:
-          repository: 'duckdb/duckdb'
+          repository: "duckdb/duckdb"
           ref: ${{ matrix.versions.new_sha }}
           fetch-depth: 0
           path: duckdb-curr-${{ matrix.versions.new_name }}
@@ -87,7 +86,7 @@ jobs:
       - name: checkout duckdb-old (${{ matrix.versions.old_name }})
         uses: actions/checkout@v4
         with:
-          repository: 'duckdb/duckdb'
+          repository: "duckdb/duckdb"
           ref: ${{ matrix.versions.old_sha }}
           fetch-depth: 0
           path: duckdb-old-${{ matrix.versions.old_name }}
@@ -98,7 +97,6 @@ jobs:
           cd duckdb-curr-${{ matrix.versions.new_name }} && make clean && make
           cd ..
           cd duckdb-old-${{ matrix.versions.old_name }} && make clean && make
-
 
       # - name: Setup upterm session
       #   uses: lhotari/action-upterm@v1
@@ -117,13 +115,13 @@ jobs:
           # creates micro_benchmarks_chunk_00.csv, micro_benchmarks_chunk_01.csv like files
           split -l 30 -d --additional-suffix=.csv all_micro_benchmarks.csv micro_benchmarks_chunk_
 
-          chmod a+r duckdb-old-${{ matrix.versions.old_name }}
-          chmod a+r duckdb-curr-${{ matrix.versions.new_name }}
-          chmod +x duckdb-old-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner
-          chmod +x duckdb-curr-${{ matrix.versions.new_name }}/build/release/benchmark/benchmark_runner
+          # chmod a+r duckdb-old-${{ matrix.versions.old_name }}
+          # chmod a+r duckdb-curr-${{ matrix.versions.new_name }}
+          # chmod +x duckdb-old-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner
+          # chmod +x duckdb-curr-${{ matrix.versions.new_name }}/build/release/benchmark/benchmark_runner
           # export LD_LIBRARY_PATH=duckdb-old-${{ matrix.versions.old_name }}/build/release/src:$LD_LIBRARY_PATH
           # export LD_LIBRARY_PATH=duckdb-curr-${{ matrix.versions.new_name }}/build/release/src:$LD_LIBRARY_PATH
-          
+
           ls -lah duckdb-old-${{ matrix.versions.old_name }}/build/release/src
 
           for chunk in micro_benchmarks_chunk_*.csv; do
@@ -135,7 +133,7 @@ jobs:
             --regression-threshold-seconds=${{ env.REGESSION_THRESHOLD_SECONDS }} --verbose 
           done
             # --regression-threshold-seconds=${{ env.REGESSION_THRESHOLD_SECONDS }} --verbose >> "regression_output_${chunk}.txt"
-          
+
       - name: Upload results
         uses: actions/upload-artifact@v4
         if: success()
@@ -146,14 +144,14 @@ jobs:
 
   # collect-issues:
   #   name: ISSUES - ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
-  #   needs: 
+  #   needs:
   #     - define-matrix
   #     - build-and-setup
   #     - run-regression-tests
   #   if: always()
   #   runs-on: ubuntu-latest
   #   strategy:
-  #     matrix: 
+  #     matrix:
   #       versions: ${{ fromJSON(needs.define-matrix.outputs.versions) }}
   #   outputs:
   #     regressions: ${{ steps.collect.outputs.regressions }}
@@ -178,7 +176,7 @@ jobs:
   #           if ! grep -q "NO REGRESSIONS DETECTED" $output; then
   #             # Retrieve benchmark name from the regression_outputs file
   #             test_name=$(echo $output | awk -F'_' '{print $3,$4}')
-              
+
   #             # Check if the header has already been written
   #             if [ "$header_written" = false ]; then
   #               echo "Adding a header..."
@@ -207,7 +205,7 @@ jobs:
   # file-issue:
   #   name: File Issue
   #   if: ${{ contains(github.ref_name, 'main') && needs.collect-issues.outputs.regressions != 'false' }}
-  #   needs: 
+  #   needs:
   #     - build-and-setup
   #     - run-regression-tests
   #     - collect-issues
@@ -216,7 +214,7 @@ jobs:
   #     - name: File issue on preparation steps
   #       shell: bash
   #       if: |
-  #           contains(github.ref_name, 'main') && 
+  #           contains(github.ref_name, 'main') &&
   #           (needs.configure-mount-and-download-benchmark-data.result != 'success' ||
   #           needs.build-and-setup.result != 'success')
   #       run: |
