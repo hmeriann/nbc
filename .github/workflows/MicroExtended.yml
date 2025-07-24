@@ -58,48 +58,48 @@ jobs:
       matrix:
         versions: ${{ fromJSON(needs.define-matrix.outputs.versions) }}
     steps:
-      # - uses: actions/checkout@v4
-      # - name: Download duckdb old version from calling workflow
-      #   uses: actions/download-artifact@v4
-      #   with:
-      #       name: duckdb-old-${{ matrix.versions.old_name }}
-      #       path: ${{ github.workspace }}/duckdb-old-${{ matrix.versions.old_name }}
-      #       repository: ${{ env.gh_issue_repo }}
-      #       run-id: ${{ inputs.run_id }}
-
-      # - name: Download duckdb new version from calling workflow
-      #   uses: actions/download-artifact@v4
-      #   with:
-      #       name: duckdb-curr-${{ matrix.versions.new_name }}
-      #       path: ${{ github.workspace }}/duckdb-curr-${{ matrix.versions.new_name }}
-      #       repository: ${{ env.gh_issue_repo }}
-      #       run-id: ${{ inputs.run_id }}
-
-      - name: checkout duckdb-curr (${{ matrix.versions.new_name }})
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - name: Download duckdb old version from calling workflow
+        uses: actions/download-artifact@v4
         with:
-          repository: "duckdb/duckdb"
-          ref: ${{ matrix.versions.new_sha }}
-          fetch-depth: 0
-          path: duckdb-curr-${{ matrix.versions.new_name }}
+            name: duckdb-old-${{ matrix.versions.old_name }}
+            path: ${{ github.workspace }}/duckdb-old-${{ matrix.versions.old_name }}
+            repository: ${{ env.gh_issue_repo }}
+            run-id: ${{ inputs.run_id }}
 
-      - name: checkout duckdb-old (${{ matrix.versions.old_name }})
-        uses: actions/checkout@v4
+      - name: Download duckdb new version from calling workflow
+        uses: actions/download-artifact@v4
         with:
-          repository: "duckdb/duckdb"
-          ref: ${{ matrix.versions.old_sha }}
-          fetch-depth: 0
-          path: duckdb-old-${{ matrix.versions.old_name }}
+            name: duckdb-curr-${{ matrix.versions.new_name }}
+            path: ${{ github.workspace }}/duckdb-curr-${{ matrix.versions.new_name }}
+            repository: ${{ env.gh_issue_repo }}
+            run-id: ${{ inputs.run_id }}
 
-      - name: Build new (${{ matrix.versions.new_name }}) and old (${{ matrix.versions.old_name }})
-        shell: bash
-        run: |
-          cd duckdb-curr-${{ matrix.versions.new_name }} && make clean && make
-          cd ..
-          cd duckdb-old-${{ matrix.versions.old_name }} && make clean && make
+      # - name: checkout duckdb-curr (${{ matrix.versions.new_name }})
+      #   uses: actions/checkout@v4
+      #   with:
+      #     repository: "duckdb/duckdb"
+      #     ref: ${{ matrix.versions.new_sha }}
+      #     fetch-depth: 0
+      #     path: duckdb-curr-${{ matrix.versions.new_name }}
 
-      # - name: Setup upterm session
-      #   uses: lhotari/action-upterm@v1
+      # - name: checkout duckdb-old (${{ matrix.versions.old_name }})
+      #   uses: actions/checkout@v4
+      #   with:
+      #     repository: "duckdb/duckdb"
+      #     ref: ${{ matrix.versions.old_sha }}
+      #     fetch-depth: 0
+      #     path: duckdb-old-${{ matrix.versions.old_name }}
+
+      # - name: Build new (${{ matrix.versions.new_name }}) and old (${{ matrix.versions.old_name }})
+      #   shell: bash
+      #   run: |
+      #     cd duckdb-curr-${{ matrix.versions.new_name }} && make clean && make
+      #     cd ..
+      #     cd duckdb-old-${{ matrix.versions.old_name }} && make clean && make
+
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
 
       - name: Run Regression Test ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
         continue-on-error: true
