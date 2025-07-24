@@ -82,7 +82,7 @@ jobs:
           repository: 'duckdb/duckdb'
           ref: ${{ matrix.versions.new_sha }}
           fetch-depth: 0
-          path: ${{ env.mounted_directory_name}}/duckdb-curr-${{ matrix.versions.new_name }}
+          path: duckdb-curr-${{ matrix.versions.new_name }}
 
       - name: checkout duckdb-old (${{ matrix.versions.old_name }})
         uses: actions/checkout@v4
@@ -90,11 +90,10 @@ jobs:
           repository: 'duckdb/duckdb'
           ref: ${{ matrix.versions.old_sha }}
           fetch-depth: 0
-          path: ${{ env.mounted_directory_name}}/duckdb-old-${{ matrix.versions.old_name }}
+          path: duckdb-old-${{ matrix.versions.old_name }}
 
       - name: Build new (${{ matrix.versions.new_name }}) and old (${{ matrix.versions.old_name }})
         shell: bash
-        working-directory: ${{ env.mounted_directory_name }}
         run: |
           cd duckdb-curr-${{ matrix.versions.new_name }} && make clean && make
           cd ..
