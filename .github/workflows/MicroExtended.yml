@@ -109,8 +109,8 @@ jobs:
           cd ..
           cd duckdb-old-${{ matrix.versions.old_name }} && make clean && make
 
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
+      # - name: Setup upterm session
+      #   uses: lhotari/action-upterm@v1
 
       - name: Run Regression Test ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
         continue-on-error: true
