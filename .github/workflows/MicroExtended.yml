@@ -57,6 +57,17 @@ jobs:
       fail-fast: false
       matrix:
         versions: ${{ fromJSON(needs.define-matrix.outputs.versions) }}
+    env:
+      GEN: ninja
+      BUILD_BENCHMARK: 1
+      BUILD_TPCH: 1
+      BUILD_TPCDS: 1
+      BUILD_JSON: 1
+      BUILD_HTTPFS: 1
+      BUILD_ICU: 1
+      BUILD_JEMALLOC: 1
+      CORE_EXTENSIONS: "inet"
+      regression_output: regression_output.txt
     steps:
       # - uses: actions/checkout@v4
       # - name: Download duckdb old version from calling workflow
