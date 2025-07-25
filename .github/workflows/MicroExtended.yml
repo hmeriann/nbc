@@ -28,12 +28,12 @@ jobs:
       versions: ${{ steps.create-version-pairs.outputs.pairs }}
 
     steps:
-      - name: Download duckdb_previous_version_pairs.json from calling workflow
-        uses: actions/download-artifact@v4
-        with:
-          name: pairs
-          repository: ${{ env.gh_issue_repo }}
-          run-id: ${{ inputs.run_id }}
+      # - name: Download duckdb_previous_version_pairs.json from calling workflow
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: pairs
+      #     repository: ${{ env.gh_issue_repo }}
+      #     run-id: ${{ inputs.run_id }}
 
       # - name: Read JSON and create version pairs matrix
       #   id: create-version-pairs
