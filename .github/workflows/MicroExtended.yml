@@ -122,7 +122,7 @@ jobs:
           # rm -Rf duckdb-old-${{ matrix.versions.old_name }}/duckdb_benchmark_data
           # mkdir -p duckdb-old-${{ matrix.versions.old_name }}/duckdb_benchmark_data
 
-          find duckdb-old-${{ matrix.versions.old_name }}/benchmark/micro -type f -name "*.benchmark" | sort > all_micro_benchmarks.csv
+          find $(pwd)/duckdb-old-${{ matrix.versions.old_name }}/benchmark/micro -type f -name "*.benchmark" | sort > all_micro_benchmarks.csv
           # creates micro_benchmarks_chunk_00.csv, micro_benchmarks_chunk_01.csv like files
           split -l 30 -d --additional-suffix=.csv all_micro_benchmarks.csv micro_benchmarks_chunk_
 
