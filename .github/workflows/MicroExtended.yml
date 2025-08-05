@@ -114,7 +114,7 @@ jobs:
 
       - name: Run Regression Test ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
         continue-on-error: true
-        working-directory: ${{ github.workspace }}
+        # working-directory: ${{ github.workspace }}
         shell: bash
         run: |
           pwd
@@ -132,19 +132,19 @@ jobs:
             cat "$chunk"
             python duckdb-curr-${{ matrix.versions.new_name }}/scripts/regression/test_runner.py \
             --old=duckdb-old-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner \
-            --new=duckdb-curr-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner \
+            --new=duckdb-curr-${{ matrix.versions.new_name }}/build/release/benchmark/benchmark_runner \
             --benchmarks="$chunk" --disable-timeout \
             --regression-threshold-seconds=${{ env.REGESSION_THRESHOLD_SECONDS }} --verbose 
           done
             # --regression-threshold-seconds=${{ env.REGESSION_THRESHOLD_SECONDS }} --verbose >> "regression_output_${chunk}.txt"
 
-      - name: Upload results
-        uses: actions/upload-artifact@v4
-        if: success()
-        with:
-          name: ${{ matrix.versions.new_name }}_${{ matrix.versions.old_name }}
-          path: regression_*_${{ matrix.versions.new_name }}_${{ matrix.versions.old_name }}.txt
-          if-no-files-found: error
+      # - name: Upload results
+      #   uses: actions/upload-artifact@v4
+      #   if: success()
+      #   with:
+      #     name: ${{ matrix.versions.new_name }}_${{ matrix.versions.old_name }}
+      #     path: regression_*_${{ matrix.versions.new_name }}_${{ matrix.versions.old_name }}.txt
+      #     if-no-files-found: error
 
   # collect-issues:
   #   name: ISSUES - ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
