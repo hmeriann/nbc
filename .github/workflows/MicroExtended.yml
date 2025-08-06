@@ -119,13 +119,14 @@ jobs:
         run: |
           # rm -Rf duckdb-old-${{ matrix.versions.old_name }}/duckdb_benchmark_data
           # mkdir -p duckdb-old-${{ matrix.versions.old_name }}/duckdb_benchmark_data
-
-          find $(pwd)/duckdb-old-${{ matrix.versions.old_name }}/benchmark/micro -type f -name "*.benchmark" | sort > all_micro_benchmarks.csv
+          cd duckdb-old-${{ matrix.versions.old_name }}
+          find benchmark/micro -type f -name "*.benchmark" | sort > all_micro_benchmarks.csv
           # creates micro_benchmarks_chunk_00.csv, micro_benchmarks_chunk_01.csv like files
           split -l 30 -d --additional-suffix=.csv all_micro_benchmarks.csv micro_benchmarks_chunk_
 
+          cd ..
           pwd
-          ls -lah /home/runner/work/nbc/nbc/duckdb-old-main/benchmark/micro/aggregate/bitstring_aggregate.benchmark
+          cat micro_benchmarks_chunk_01.csv
 
           for chunk in micro_benchmarks_chunk_*.csv; do
             cat "$chunk"
