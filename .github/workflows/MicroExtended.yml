@@ -129,7 +129,7 @@ jobs:
           ls -lah duckdb-old-${{ matrix.versions.old_name }}
           cat duckdb-old-${{ matrix.versions.old_name }}/micro_benchmarks_chunk_01.csv
 
-          for chunk in micro_benchmarks_chunk_*.csv; do
+          for chunk in duckdb-old-${{ matrix.versions.old_name }}/micro_benchmarks_chunk_*.csv; do
             cat "$chunk"
             python duckdb-curr-${{ matrix.versions.new_name }}/scripts/regression/test_runner.py \
             --old=duckdb-old-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner \
