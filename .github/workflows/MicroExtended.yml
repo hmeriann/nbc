@@ -126,7 +126,7 @@ jobs:
 
           cd ..
           pwd
-          la -lah duckdb-old-${{ matrix.versions.old_name }}
+          ls -lah duckdb-old-${{ matrix.versions.old_name }}
           cat duckdb-old-${{ matrix.versions.old_name }}/micro_benchmarks_chunk_01.csv
 
           for chunk in micro_benchmarks_chunk_*.csv; do
