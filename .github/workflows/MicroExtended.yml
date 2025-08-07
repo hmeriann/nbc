@@ -139,8 +139,8 @@ jobs:
           done
             # --regression-threshold-seconds=${{ env.REGESSION_THRESHOLD_SECONDS }} --verbose >> "regression_output_${chunk}.txt"
 
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
+      # - name: Setup upterm session
+      #   uses: lhotari/action-upterm@v1
       # - name: Upload results
       #   uses: actions/upload-artifact@v4
       #   if: success()
