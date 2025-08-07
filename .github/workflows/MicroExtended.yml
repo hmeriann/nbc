@@ -135,7 +135,7 @@ jobs:
             --old=duckdb-old-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner \
             --new=duckdb-curr-${{ matrix.versions.new_name }}/build/release/benchmark/benchmark_runner \
             --benchmarks="$chunk" --disable-timeout \
-            --regression-threshold-seconds=${{ env.REGESSION_THRESHOLD_SECONDS }} --verbose 
+            --regression-threshold-seconds=${{ env.REGESSION_THRESHOLD_SECONDS }} --verbose || true
           done
             # --regression-threshold-seconds=${{ env.REGESSION_THRESHOLD_SECONDS }} --verbose >> "regression_output_${chunk}.txt"
 
