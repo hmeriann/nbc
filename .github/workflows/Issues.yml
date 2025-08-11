@@ -1,0 +1,52 @@
+name: Create Issues From Nightly CI Failures
+
+on:
+  schedule:
+    - cron:  '0 10 * * *'
+  push: # temporarily
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      job_name:
+        required: true
+        type: string
+      branch_name:
+        required: true
+        type: string
+      workflow_url:
+        required: true
+        type: string
+permissions:
+  issues: write
+
+env:
+    GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+    SOURCE_REPO: 'duckdb/duckdb'
+    ISSUES_REPO: 'hmeriann/nbc'
+    # ISSUES_REPO: 'duckdblabs/duckdb-internal'
+
+jobs:
+  fetch-and-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+          # persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install Python requests
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests github
+
+      - name: File new issues found by nightly CI
+        shell: bash
+        # this script opens a new issue if there is no issue with the same title
+        run: python scripts/file_ci_failure_nightly_issues.py
