@@ -32,6 +32,7 @@ jobs:
       - name: Checkout this repo
         uses: actions/checkout@v4
         with:
+          repository: duckdblabs/duckdb-internal
           token: ${{ secrets.GH_TOKEN }}
           # persist-credentials: false
 
