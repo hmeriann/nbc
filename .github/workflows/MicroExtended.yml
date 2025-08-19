@@ -127,7 +127,7 @@ jobs:
           # ls -lah duckdb-old-${{ matrix.versions.old_name }}
           # cat duckdb-old-${{ matrix.versions.old_name }}/micro_benchmarks_chunk_01.csv
 
-          cd duckdb-old-${{ matrix.versions.old_name }}
+          # cd duckdb-old-${{ matrix.versions.old_name }}
           "benchmark/micro/array/large_array_dense_select.benchmark" > duckdb-old-${{ matrix.versions.old_name }}/bench.csv
           "benchmark/micro/cast/cast_varcharmap_string.benchmark" >> duckdb-old-${{ matrix.versions.old_name }}/bench.csv
           "benchmark/micro/compression/dictionary/dictionary_read_best_case.benchmark" >> duckdb-old-${{ matrix.versions.old_name }}/bench.csv
