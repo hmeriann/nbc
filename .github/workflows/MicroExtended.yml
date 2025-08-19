@@ -128,10 +128,10 @@ jobs:
           # cat duckdb-old-${{ matrix.versions.old_name }}/micro_benchmarks_chunk_01.csv
 
           # cd duckdb-old-${{ matrix.versions.old_name }}
-          "benchmark/micro/array/large_array_dense_select.benchmark" > duckdb-old-${{ matrix.versions.old_name }}/bench.csv
-          "benchmark/micro/cast/cast_varcharmap_string.benchmark" >> duckdb-old-${{ matrix.versions.old_name }}/bench.csv
-          "benchmark/micro/compression/dictionary/dictionary_read_best_case.benchmark" >> duckdb-old-${{ matrix.versions.old_name }}/bench.csv
-          "benchmark/micro/join/delim_join_no_blowup.benchmark" >> duckdb-old-${{ matrix.versions.old_name }}/bench.csv
+          "duckdb-old-${{ matrix.versions.old_name }}/benchmark/micro/array/large_array_dense_select.benchmark" > duckdb-old-${{ matrix.versions.old_name }}/bench.csv
+          "duckdb-old-${{ matrix.versions.old_name }}/benchmark/micro/cast/cast_varcharmap_string.benchmark" >> duckdb-old-${{ matrix.versions.old_name }}/bench.csv
+          "duckdb-old-${{ matrix.versions.old_name }}/benchmark/micro/compression/dictionary/dictionary_read_best_case.benchmark" >> duckdb-old-${{ matrix.versions.old_name }}/bench.csv
+          "duckdb-old-${{ matrix.versions.old_name }}/benchmark/micro/join/delim_join_no_blowup.benchmark" >> duckdb-old-${{ matrix.versions.old_name }}/bench.csv
           
           # for chunk in duckdb-old-${{ matrix.versions.old_name }}/micro_benchmarks_chunk_*.csv; do
           for chunk in duckdb-old-${{ matrix.versions.old_name }}/bench.csv; do
