@@ -117,37 +117,41 @@ jobs:
         # working-directory: ${{ github.workspace }}
         shell: bash
         run: |
-          # rm -Rf duckdb-old-${{ matrix.versions.old_name }}/duckdb_benchmark_data
-          # mkdir -p duckdb-old-${{ matrix.versions.old_name }}/duckdb_benchmark_data
-          cd duckdb-old-${{ matrix.versions.old_name }}
-          find benchmark/micro -type f -name "*.benchmark" | sort > all_micro_benchmarks.csv
-          # creates micro_benchmarks_chunk_00.csv, micro_benchmarks_chunk_01.csv like files
-          split -l 30 -d --additional-suffix=.csv all_micro_benchmarks.csv micro_benchmarks_chunk_
+          # cd duckdb-old-${{ matrix.versions.old_name }}
+          # find benchmark/micro -type f -name "*.benchmark" | sort > all_micro_benchmarks.csv
+          # # creates micro_benchmarks_chunk_00.csv, micro_benchmarks_chunk_01.csv like files
+          # split -l 30 -d --additional-suffix=.csv all_micro_benchmarks.csv micro_benchmarks_chunk_
 
-          cd ..
-          pwd
-          ls -lah duckdb-old-${{ matrix.versions.old_name }}
-          cat duckdb-old-${{ matrix.versions.old_name }}/micro_benchmarks_chunk_01.csv
+          # cd ..
+          # pwd
+          # ls -lah duckdb-old-${{ matrix.versions.old_name }}
+          # cat duckdb-old-${{ matrix.versions.old_name }}/micro_benchmarks_chunk_01.csv
 
-          for chunk in duckdb-old-${{ matrix.versions.old_name }}/micro_benchmarks_chunk_*.csv; do
+          "benchmark/micro/array/large_array_dense_select.benchmark" > duckdb-old-${{ matrix.versions.old_name }}/bench.csv
+          "benchmark/micro/cast/cast_varcharmap_string.benchmark" >> duckdb-old-${{ matrix.versions.old_name }}/bench.csv
+          "benchmark/micro/compression/dictionary/dictionary_read_best_case.benchmark" >> duckdb-old-${{ matrix.versions.old_name }}/bench.csv
+          "benchmark/micro/join/delim_join_no_blowup.benchmark" >> duckdb-old-${{ matrix.versions.old_name }}/bench.csv
+          
+          # for chunk in duckdb-old-${{ matrix.versions.old_name }}/micro_benchmarks_chunk_*.csv; do
+          
+          for chunk in duckdb-old-${{ matrix.versions.old_name }}/bench.csv; do
             cat "$chunk"
             python duckdb-curr-${{ matrix.versions.new_name }}/scripts/regression/test_runner.py \
             --old=duckdb-old-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner \
             --new=duckdb-curr-${{ matrix.versions.new_name }}/build/release/benchmark/benchmark_runner \
-            --benchmarks="$chunk" --disable-timeout --disable-timeout\
-            --regression-threshold-seconds=${{ env.REGESSION_THRESHOLD_SECONDS }} --verbose || true
+            --benchmarks="$chunk"  --disable-timeout\
+            --regression-threshold-seconds=${{ env.REGESSION_THRESHOLD_SECONDS }}\
+            --verbose >> "regression_output_micro_extended_${{ matrix.versions.new_name }}_${{ matrix.versions.old_name }}.txt" || true
           done
-            # --regression-threshold-seconds=${{ env.REGESSION_THRESHOLD_SECONDS }} --verbose >> "regression_output_${chunk}.txt"
+            # --regression-threshold-seconds=${{ env.REGESSION_THRESHOLD_SECONDS }} --verbose >> "regression_output_micro_extended_${{ matrix.versions.new_name }}_${{ matrix.versions.old_name }}.txt"
 
-      # - name: Setup upterm session
-      #   uses: lhotari/action-upterm@v1
-      # - name: Upload results
-      #   uses: actions/upload-artifact@v4
-      #   if: success()
-      #   with:
-      #     name: ${{ matrix.versions.new_name }}_${{ matrix.versions.old_name }}
-      #     path: regression_*_${{ matrix.versions.new_name }}_${{ matrix.versions.old_name }}.txt
-      #     if-no-files-found: error
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ matrix.versions.new_name }}_${{ matrix.versions.old_name }}
+          path: regression_output_micro_extended_${{ matrix.versions.new_name }}_${{ matrix.versions.old_name }}.txt
+          if-no-files-found: ignore
 
   # collect-issues:
   #   name: ISSUES - ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
