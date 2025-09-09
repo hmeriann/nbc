@@ -88,8 +88,10 @@ jobs:
         shell: bash
         working-directory: ${{ env.mounted_directory_name}}
         run: |
-          aws s3 cp s3://duckdb-blobs/data/tpch-sf100.db tpch_sf100.duckdb
-          aws s3 cp s3://duckdb-blobs/data/tpcds_sf100.db tpcds_sf100.duckdb
+          wget https://duckdb-blobs.s3.us-east-1.amazonaws.com/data/tpch-sf100.db -O tpch_sf100.duckdb
+          wget https://duckdb-blobs.s3.us-east-1.amazonaws.com/data/tpcds_sf100.db -O tpcds_sf100.duckdb
+          # aws s3 cp s3://duckdb-blobs/data/tpch-sf100.db tpch_sf100.duckdb
+          # aws s3 cp s3://duckdb-blobs/data/tpcds_sf100.db tpcds_sf100.duckdb
 
   define-matrix:
     name: Define matrix of pairs
