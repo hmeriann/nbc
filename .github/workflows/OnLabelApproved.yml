@@ -1,0 +1,35 @@
+name: Approve fork PR workflows on label
+
+on:
+  pull_request_target:
+    types: [labeled]
+
+permissions:
+  actions: write
+  pull-requests: read
+  contents: read
+
+env:
+  GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+jobs:
+  approve:
+    if: contains(github.event.pull_request.labels.*.name, 'approved')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check actor is org member
+        id: orgcheck
+        run: |
+            resp=$(curl -sS \
+            -H "Authorization: Bearer ${{ env.GH_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/orgs/duckdb/memberships/${{ github.actor }})
+
+            state=$(jq -r '.state // empty' <<< $resp)
+            if [ "$state" != "active" ]; then
+                echo "Not an org member (or token lacks read:org)"; exit 1
+            fi
+  code-quality:
+    needs: approve 
+    uses: ./.github/workflows/Example.yml
+    secrets: inherit
