@@ -270,14 +270,15 @@ jobs:
       regressions: ${{ steps.collect.outputs.regressions }}
 
     steps:
-      - name: Collect issues on Benchmarks
+      - name: Collect issues
         id: collect
         shell: bash
         working-directory: ${{ env.mounted_directory_name }}
         run: |
           header_written=false
+          regressions=false
 
-          for output in $(ls "regression_output_${{ matrix.versions.new_name }}_${{ matrix.versions.old_name }}.txt"); do
+          for output in $(ls regression_*_${{ matrix.versions.new_name }}_${{ matrix.versions.old_name }}.txt); do
             echo "Processing output file $output..."
             # Check if regressions are detected in the current file
             if ! grep -q "NO REGRESSIONS DETECTED" $output; then
@@ -302,12 +303,12 @@ jobs:
               printf -- "- **%s**\n" "$test_name" >> "issue_body.txt"
               printf -- "\`\`\`\n%s\n\`\`\`\n" "$(awk '/REGRESSIONS DETECTED/,/OTHER TIMINGS/' $output)" >> "issue_body.txt"
               echo "Regressions detected in $test_name $output. An issue should be filed."
-              echo "regressions=true" >> $GITHUB_OUTPUT
+              regressions=true
             else
-              echo "No Regressions Detected."
-              echo "regressions=false" >> $GITHUB_OUTPUT
+              echo "No Regressions Detected in $output."
             fi
           done
+          echo "regressions=$regressions" >> $GITHUB_OUTPUT
 
   file-issue:
     name: File Issue
