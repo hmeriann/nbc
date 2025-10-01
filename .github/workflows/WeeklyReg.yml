@@ -147,9 +147,9 @@ jobs:
       - name: create pairs.json
         working-directory: ${GITHUB_WORKSPACE}
         run: |
-          mv scripts/scripts/create_pairs_matrix.py duckdb/scripts
-          cd duckdb
-          python scripts/create_pairs_matrix.py
+          # mv scripts/scripts/create_pairs_matrix.py duckdb/scripts
+          # cd duckdb
+          python scripts/scripts/create_pairs_matrix.py
       
       - name: move pairs.json
         run: mv ${GITHUB_WORKSPACE}/duckdb_previous_version_pairs.json .
