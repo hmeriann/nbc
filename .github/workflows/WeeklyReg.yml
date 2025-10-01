@@ -151,14 +151,14 @@ jobs:
           # cd duckdb
           python scripts/scripts/create_pairs_matrix.py
       
-      - name: move pairs.json
-        run: mv ${GITHUB_WORKSPACE}/duckdb_previous_version_pairs.json .
+      # - name: move pairs.json
+      #   run: mv ${GITHUB_WORKSPACE}/duckdb_previous_version_pairs.json .
           
       - name: Read JSON and create version pairs matrix
         working-directory: ${GITHUB_WORKSPACE}
         id: create-version-pairs
         run: |
-          pairs=$(cat ../duckdb_previous_version_pairs.json | jq -c '.')
+          pairs=$(cat ${GITHUB_WORKSPACE}/duckdb_previous_version_pairs.json | jq -c '.')
           echo "pairs=$pairs" >> $GITHUB_OUTPUT
 
   check:
