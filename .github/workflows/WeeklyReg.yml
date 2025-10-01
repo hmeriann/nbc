@@ -167,7 +167,7 @@ jobs:
       - define-matrix
     runs-on: ubuntu-latest
     steps:
-      - run: echo ${{ needs.define-matrix.outputs.versions }} 
+      - run: echo ${{  fromJSON(needs.define-matrix.outputs.versions) }} 
 
 
 
