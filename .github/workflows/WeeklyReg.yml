@@ -15,105 +15,105 @@ env:
   NIGHTLY_BUILD_FILE: nightly_builds_status
 
 jobs:
-  check-nightly-builds:
-    name: Check Nightly Build failures
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+  # check-nightly-builds:
+  #   name: Check Nightly Build failures
+  #   if: always()
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout repo
+  #       uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
+  #     - name: Set up Python
+  #       uses: actions/setup-python@v5
+  #       with:
+  #         python-version: '3.10'
 
-      - name: Install 
-        shell: bash
-        run: pip install duckdb pandas tabulate
+  #     - name: Install 
+  #       shell: bash
+  #       run: pip install duckdb pandas tabulate
 
-      - name: Create run status report for nightly-builds on 'main'
-        continue-on-error: true
-        run: |
-          # count consecutive failures and create a ${{ env.NIGHTLY_BUILD_FILE }}.md file
-          python scripts/count_consecutive_failures.py
+  #     - name: Create run status report for nightly-builds on 'main'
+  #       continue-on-error: true
+  #       run: |
+  #         # count consecutive failures and create a ${{ env.NIGHTLY_BUILD_FILE }}.md file
+  #         python scripts/count_consecutive_failures.py
 
-      - name: Upload nightly-build status
-        uses: actions/upload-artifact@v4
-        if: success()
-        with:
-          name: ${{ env.NIGHTLY_BUILD_FILE }}
-          path: ${{ env.NIGHTLY_BUILD_FILE }}.md
-          if-no-files-found: error
+  #     - name: Upload nightly-build status
+  #       uses: actions/upload-artifact@v4
+  #       if: success()
+  #       with:
+  #         name: ${{ env.NIGHTLY_BUILD_FILE }}
+  #         path: ${{ env.NIGHTLY_BUILD_FILE }}.md
+  #         if-no-files-found: error
 
-  start-runner:
-    name: Start self-hosted ec2 runner
-    runs-on: ubuntu-latest
-    env:
-      instance_id: i-0a6cd2153bfd28349
+  # start-runner:
+  #   name: Start self-hosted ec2 runner
+  #   runs-on: ubuntu-latest
+  #   env:
+  #     instance_id: i-0a6cd2153bfd28349
 
-    steps:
-      - name: Start EC2 runner
-        shell: bash
-        env:
-          AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
-          AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
-          AWS_DEFAULT_REGION: us-east-1
-        run: aws ec2 start-instances --instance-id ${{ env.instance_id }}
+  #   steps:
+  #     - name: Start EC2 runner
+  #       shell: bash
+  #       env:
+  #         AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
+  #         AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+  #         AWS_DEFAULT_REGION: us-east-1
+  #       run: aws ec2 start-instances --instance-id ${{ env.instance_id }}
 
-      - name: Create issue if failure
-        shell: bash
-        if: ${{ failure() && contains(github.ref_name, 'main') }}
-        run: |
-          gh issue create --repo ${{ env.gh_issue_repo }} --title "Weekly Regression Test Failure" --body "AWS box with instance-id ${{ env.instance_id }} could not be started"
+  #     - name: Create issue if failure
+  #       shell: bash
+  #       if: ${{ failure() && contains(github.ref_name, 'main') }}
+  #       run: |
+  #         gh issue create --repo ${{ env.gh_issue_repo }} --title "Weekly Regression Test Failure" --body "AWS box with instance-id ${{ env.instance_id }} could not be started"
 
-  configure-mount-and-download-benchmark-data:
-    name: Configure mount and download benchmark data
-    needs: 
-      - start-runner
-    runs-on: self-hosted
-    env:
-      AWS_PROFILE: user1
+  # configure-mount-and-download-benchmark-data:
+  #   name: Configure mount and download benchmark data
+  #   needs: 
+  #     - start-runner
+  #   runs-on: self-hosted
+  #   env:
+  #     AWS_PROFILE: user1
 
-    steps:
-      - name: Install
-        shell: bash
-        run: sudo apt-get update -y -qq && sudo apt-get install -y -qq g++ ninja-build cmake make python-is-python3 libssl-dev pip gh jq python3-requests
+  #   steps:
+  #     - name: Install
+  #       shell: bash
+  #       run: sudo apt-get update -y -qq && sudo apt-get install -y -qq g++ ninja-build cmake make python-is-python3 libssl-dev pip gh jq python3-requests
 
-      - name: umount mount-point (helps with debugging)
-        shell: bash
-        run: |
-          if [ ! -d ${{ env.mounted_directory_name }} ] ; then 
-            mkdir ${{ env.mounted_directory_name }}
-            exit 0;
-          fi 
-          if mountpoint -q ${{ env.mounted_directory_name }} ; then
-            # unmount mount-point. During debugging the mount can cause steps
-            # to fail when copying duckdb-main to duckdb-old
-            rm -rf ${{ env.mounted_directory_name }}/*
-            sudo umount ${{ env.mounted_directory_name }}
-          fi
+  #     - name: umount mount-point (helps with debugging)
+  #       shell: bash
+  #       run: |
+  #         if [ ! -d ${GITHUB_WORKSPACE} ] ; then 
+  #           mkdir ${GITHUB_WORKSPACE}
+  #           exit 0;
+  #         fi 
+  #         if mountpoint -q ${GITHUB_WORKSPACE} ; then
+  #           # unmount mount-point. During debugging the mount can cause steps
+  #           # to fail when copying duckdb-main to duckdb-old
+  #           rm -rf ${GITHUB_WORKSPACE}/*
+  #           sudo umount ${GITHUB_WORKSPACE}
+  #         fi
 
-      - name: Mount to instance storage
-        shell: bash
-        run: |
-          # sometimes the mount point changes, by parsing the output of lsblk
-          # we can always get the right mount point
-          mount_name=$(sudo lsblk | awk 'NR > 1{
-            size = $4;
-            gsub(/MB/, "", size);
-            gsub(/KB/, "", size);
+  #     - name: Mount to instance storage
+  #       shell: bash
+  #       run: |
+  #         # sometimes the mount point changes, by parsing the output of lsblk
+  #         # we can always get the right mount point
+  #         mount_name=$(sudo lsblk | awk 'NR > 1{
+  #           size = $4;
+  #           gsub(/MB/, "", size);
+  #           gsub(/KB/, "", size);
 
-            if (size ~ /M/) size /= 1024;       # Already in MB
-            else if (size ~ /K/) size /= (1024*1024); # Convert KB to GB
+  #           if (size ~ /M/) size /= 1024;       # Already in MB
+  #           else if (size ~ /K/) size /= (1024*1024); # Convert KB to GB
 
-            if (size > 800) print $1;
-          }' | head -1)
-          rm -rf ${{ env.mounted_directory_name }}
-          sudo mkfs -t xfs -f /dev/$mount_name
-          mkdir ${{ env.mounted_directory_name }}
-          sudo mount /dev/$mount_name ${{ env.mounted_directory_name }}
-          sudo chown -R ubuntu ${{ env.mounted_directory_name }}
+  #           if (size > 800) print $1;
+  #         }' | head -1)
+  #         rm -rf ${GITHUB_WORKSPACE}
+  #         sudo mkfs -t xfs -f /dev/$mount_name
+  #         mkdir ${GITHUB_WORKSPACE}
+  #         sudo mount /dev/$mount_name ${GITHUB_WORKSPACE}
+  #         sudo chown -R ubuntu ${GITHUB_WORKSPACE}
 
       # - name: Load data for sf100 benchmarks.
       #   shell: bash
@@ -124,8 +124,9 @@ jobs:
 
   define-matrix:
     name: Define matrix of pairs
-    needs: configure-mount-and-download-benchmark-data
-    runs-on: self-hosted
+    # needs: configure-mount-and-download-benchmark-data
+    runs-on: ubuntu-latest
+    # runs-on: self-hosted
     outputs:
       versions: ${{ steps.create-version-pairs.outputs.pairs }}
 
@@ -134,7 +135,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           sparse-checkout: scripts/create_pairs_matrix.py
-          path: ${{ env.mounted_directory_name }}/scripts
+          path: ${GITHUB_WORKSPACE}/scripts
 
       - name: checkout duckdb
         uses: actions/checkout@v4
@@ -144,328 +145,342 @@ jobs:
           path: ${{ env.mounted_directory_name}}/duckdb
       
       - name: create pairs.json
-        working-directory: ${{ env.mounted_directory_name }}
+        working-directory: ${GITHUB_WORKSPACE}
         run: |
           mv scripts/scripts/create_pairs_matrix.py duckdb/scripts
           cd duckdb
           python scripts/create_pairs_matrix.py
       
       - name: move pairs.json
-        run: mv ${{ env.mounted_directory_name }}/duckdb_previous_version_pairs.json .
+        run: mv ${GITHUB_WORKSPACE}/duckdb_previous_version_pairs.json .
           
       - name: Read JSON and create version pairs matrix
-        working-directory: ${{ env.mounted_directory_name }}
+        working-directory: ${GITHUB_WORKSPACE}
         id: create-version-pairs
         run: |
           pairs=$(cat ../duckdb_previous_version_pairs.json | jq -c '.')
           echo "pairs=$pairs" >> $GITHUB_OUTPUT
 
-  build-and-setup:
-    name: BUILD - ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
+  check:
+    name: Check
     needs: 
       - define-matrix
-      - configure-mount-and-download-benchmark-data
-    strategy:
-      matrix:
-        versions: ${{ fromJSON(needs.define-matrix.outputs.versions) }}
-      fail-fast: false
-    runs-on: self-hosted
-    env:
-      GEN: ninja
-      BUILD_BENCHMARK: 1
-      BUILD_TPCH: 1
-      BUILD_TPCDS: 1
-      BUILD_JSON: 1
-      BUILD_HTTPFS: 1
-      BUILD_ICU: 1
-      BUILD_JEMALLOC: 1
-      CORE_EXTENSIONS: "inet"
-      regression_output: regression_output.txt
+    runs-on: ubuntu-latest
     steps:
-      - name: checkout duckdb-curr (${{ matrix.versions.new_name }})
-        uses: actions/checkout@v4
-        with:
-          repository: 'duckdb/duckdb'
-          ref: ${{ matrix.versions.new_sha }}
-          fetch-depth: 0
-          path: ${{ env.mounted_directory_name}}/duckdb-curr-${{ matrix.versions.new_name }}
+      - run: echo ${{ needs.define-matrix.outputs.versions }} 
 
-  #     - name: checkout duckdb-old (${{ matrix.versions.old_name }})
+
+
+
+
+
+    
+  # build-and-setup:
+  #   name: BUILD - ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
+  #   needs: 
+  #     - define-matrix
+  #     - configure-mount-and-download-benchmark-data
+  #   strategy:
+  #     matrix:
+  #       versions: ${{ fromJSON(needs.define-matrix.outputs.versions) }}
+  #     fail-fast: false
+  #   runs-on: self-hosted
+  #   env:
+  #     GEN: ninja
+  #     BUILD_BENCHMARK: 1
+  #     BUILD_TPCH: 1
+  #     BUILD_TPCDS: 1
+  #     BUILD_JSON: 1
+  #     BUILD_HTTPFS: 1
+  #     BUILD_ICU: 1
+  #     BUILD_JEMALLOC: 1
+  #     CORE_EXTENSIONS: "inet"
+  #     regression_output: regression_output.txt
+  #   steps:
+  #     - name: checkout duckdb-curr (${{ matrix.versions.new_name }})
   #       uses: actions/checkout@v4
   #       with:
   #         repository: 'duckdb/duckdb'
-  #         ref: ${{ matrix.versions.old_sha }}
+  #         ref: ${{ matrix.versions.new_sha }}
   #         fetch-depth: 0
-  #         path: ${{ env.mounted_directory_name}}/duckdb-old-${{ matrix.versions.old_name }}
+  #         path: ${{ env.mounted_directory_name}}/duckdb-curr-${{ matrix.versions.new_name }}
 
-  #     - name: Build new (${{ matrix.versions.new_name }}) and old (${{ matrix.versions.old_name }})
-  #       shell: bash
-  #       working-directory: ${{ env.mounted_directory_name }}
-  #       run: |
-  #         cd duckdb-curr-${{ matrix.versions.new_name }} && make clean && make
-  #         cd ..
-  #         cd duckdb-old-${{ matrix.versions.old_name }} && make clean && make
+  # #     - name: checkout duckdb-old (${{ matrix.versions.old_name }})
+  # #       uses: actions/checkout@v4
+  # #       with:
+  # #         repository: 'duckdb/duckdb'
+  # #         ref: ${{ matrix.versions.old_sha }}
+  # #         fetch-depth: 0
+  # #         path: ${{ env.mounted_directory_name}}/duckdb-old-${{ matrix.versions.old_name }}
 
-  #     - name: Set up benchmarks 
-  #       shell: bash
-  #       working-directory: ${{ env.mounted_directory_name }}/duckdb-old-${{ matrix.versions.old_name }}
-  #       run: |
-  #         # we do this so new added benchmarks that break duckdb old
-  #         # do not cause failures.
-  #         rm -rf ../duckdb-curr-${{ matrix.versions.new_name }}/benchmark
-  #         mkdir ../duckdb-curr-${{ matrix.versions.new_name }}/benchmark
-  #         cp -r benchmark ../duckdb-curr-${{ matrix.versions.new_name }}
+  # #     - name: Build new (${{ matrix.versions.new_name }}) and old (${{ matrix.versions.old_name }})
+  # #       shell: bash
+  # #       working-directory: ${GITHUB_WORKSPACE}
+  # #       run: |
+  # #         cd duckdb-curr-${{ matrix.versions.new_name }} && make clean && make
+  # #         cd ..
+  # #         cd duckdb-old-${{ matrix.versions.old_name }} && make clean && make
 
-  #     - name: Link duckdb-curr/duckdb_benchmark_data to tpch_sf100.duckdb and tpcds_sf100.duckdb
-  #       shell: bash 
-  #       working-directory: ${{ env.mounted_directory_name }}/duckdb-curr-${{ matrix.versions.new_name }}
-  #       run: |
-  #         # make sure there is no duckdb_benchmark_data left over from the previous run
-  #         rm -rf duckdb_benchmark_data
-  #         mkdir duckdb_benchmark_data
-  #         cd duckdb_benchmark_data
-  #         ln -s ${{ github.workspace }}/${{ env.mounted_directory_name }}/tpch_sf100.duckdb .
-  #         # ln -s ${{ github.workspace }}/${{ env.mounted_directory_name }}/tpcds_sf100.duckdb .
+  # #     - name: Set up benchmarks 
+  # #       shell: bash
+  # #       working-directory: ${GITHUB_WORKSPACE}/duckdb-old-${{ matrix.versions.old_name }}
+  # #       run: |
+  # #         # we do this so new added benchmarks that break duckdb old
+  # #         # do not cause failures.
+  # #         rm -rf ../duckdb-curr-${{ matrix.versions.new_name }}/benchmark
+  # #         mkdir ../duckdb-curr-${{ matrix.versions.new_name }}/benchmark
+  # #         cp -r benchmark ../duckdb-curr-${{ matrix.versions.new_name }}
+
+  # #     - name: Link duckdb-curr/duckdb_benchmark_data to tpch_sf100.duckdb and tpcds_sf100.duckdb
+  # #       shell: bash 
+  # #       working-directory: ${GITHUB_WORKSPACE}/duckdb-curr-${{ matrix.versions.new_name }}
+  # #       run: |
+  # #         # make sure there is no duckdb_benchmark_data left over from the previous run
+  # #         rm -rf duckdb_benchmark_data
+  # #         mkdir duckdb_benchmark_data
+  # #         cd duckdb_benchmark_data
+  # #         ln -s ${{ github.workspace }}/${GITHUB_WORKSPACE}/tpch_sf100.duckdb .
+  # #         # ln -s ${{ github.workspace }}/${GITHUB_WORKSPACE}/tpcds_sf100.duckdb .
     
-  #     - name: Link duckdb-old/duckdb_benchmark_data to tpch_sf100.duckdb and tpcds_sf100.duckdb
-  #       shell: bash 
-  #       working-directory: ${{ env.mounted_directory_name }}/duckdb-old-${{ matrix.versions.old_name }}
-  #       run: |
-  #         # make sure there is no duckdb_benchmark_data left over from the previous run
-  #         rm -rf duckdb_benchmark_data
-  #         mkdir duckdb_benchmark_data
-  #         cd duckdb_benchmark_data
-  #         ln -s ${{ github.workspace }}/${{ env.mounted_directory_name }}/tpch_sf100.duckdb .
-  #         # ln -s ${{ github.workspace }}/${{ env.mounted_directory_name }}/tpcds_sf100.duckdb .
+  # #     - name: Link duckdb-old/duckdb_benchmark_data to tpch_sf100.duckdb and tpcds_sf100.duckdb
+  # #       shell: bash 
+  # #       working-directory: ${GITHUB_WORKSPACE}/duckdb-old-${{ matrix.versions.old_name }}
+  # #       run: |
+  # #         # make sure there is no duckdb_benchmark_data left over from the previous run
+  # #         rm -rf duckdb_benchmark_data
+  # #         mkdir duckdb_benchmark_data
+  # #         cd duckdb_benchmark_data
+  # #         ln -s ${{ github.workspace }}/${GITHUB_WORKSPACE}/tpch_sf100.duckdb .
+  # #         # ln -s ${{ github.workspace }}/${GITHUB_WORKSPACE}/tpcds_sf100.duckdb .
     
-  run-regression-tests:
-    name: TEST - ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
-    if: always()
-    needs: 
-      - define-matrix
-      - configure-mount-and-download-benchmark-data
-      - build-and-setup
-      - check-nightly-builds
-    runs-on: self-hosted
-    strategy:
-      fail-fast: false
-      matrix:
-        versions: ${{ fromJSON(needs.define-matrix.outputs.versions) }}
-    steps:          
-      - name: Run Regression Test ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
-        continue-on-error: true
-        shell: bash
-        working-directory: ${{ env.mounted_directory_name }}
-        run: |
-          export disable_timeout=""
-          tests=('large/tpch.csv' 'large/tpcds.csv')
-          # tests=('large/tpch.csv')
+  # run-regression-tests:
+  #   name: TEST - ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
+  #   if: always()
+  #   needs: 
+  #     - define-matrix
+  #     - configure-mount-and-download-benchmark-data
+  #     - build-and-setup
+  #     - check-nightly-builds
+  #   runs-on: self-hosted
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       versions: ${{ fromJSON(needs.define-matrix.outputs.versions) }}
+  #   steps:          
+  #     - name: Run Regression Test ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
+  #       continue-on-error: true
+  #       shell: bash
+  #       working-directory: ${GITHUB_WORKSPACE}
+  #       run: |
+  #         export disable_timeout=""
+  #         tests=('large/tpch.csv' 'large/tpcds.csv')
+  #         # tests=('large/tpch.csv')
           
-          for test in ${tests[@]}; do
-            if [[ "${test}" == "large/tpcds.csv" ]]; then
-                disable_timeout="--disable-timeout"
-            fi  
-            test_type=$(echo "${test}" | sed -e 's/\//_/g'  -e 's/\.csv//' )
+  #         for test in ${tests[@]}; do
+  #           if [[ "${test}" == "large/tpcds.csv" ]]; then
+  #               disable_timeout="--disable-timeout"
+  #           fi  
+  #           test_type=$(echo "${test}" | sed -e 's/\//_/g'  -e 's/\.csv//' )
 
-            file_name="regression_output_${test_type}_${{ matrix.versions.new_name }}_${{ matrix.versions.old_name }}.txt"
-            # python duckdb-curr-${{ matrix.versions.new_name }}/scripts/regression/test_runner.py \
-            #   --old=duckdb-old-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner \
-            #   --new=duckdb-curr-${{ matrix.versions.new_name }}/build/release/benchmark/benchmark_runner \
-            #   --benchmarks=duckdb-curr-${{ matrix.versions.new_name }}/.github/regression/$test $disable_timeout \
-            #   --verbose > "${file_name}"
-            if [[ "${test}" == "large/tpcds.csv" ]]; then
-              echo "====================================================\n==============  REGRESSIONS DETECTED   =============\n====================================================\n\nbenchmark/large/tpcds-sf100/q13.benchmark\nOld timing: 0.977482\nNew timing: 1.174277\n OTHER TIMINGS\n" > "${file_name}"
-            fi
-            if [[ "${test}" == "large/tpch.csv" &&  ${{ matrix.versions.old_name }} != "main" ]]; then
-              echo "====================================================\n==============  REGRESSIONS DETECTED   =============\n====================================================\n\nbenchmark/large/tpcds-sf100/q13.benchmark\nOld timing: 0.977482\nNew timing: 1.174277\n OTHER TIMINGS\n" > "${file_name}"
-            fi
-          done
+  #           file_name="regression_output_${test_type}_${{ matrix.versions.new_name }}_${{ matrix.versions.old_name }}.txt"
+  #           # python duckdb-curr-${{ matrix.versions.new_name }}/scripts/regression/test_runner.py \
+  #           #   --old=duckdb-old-${{ matrix.versions.old_name }}/build/release/benchmark/benchmark_runner \
+  #           #   --new=duckdb-curr-${{ matrix.versions.new_name }}/build/release/benchmark/benchmark_runner \
+  #           #   --benchmarks=duckdb-curr-${{ matrix.versions.new_name }}/.github/regression/$test $disable_timeout \
+  #           #   --verbose > "${file_name}"
+  #           if [[ "${test}" == "large/tpcds.csv" ]]; then
+  #             echo "====================================================\n==============  REGRESSIONS DETECTED   =============\n====================================================\n\nbenchmark/large/tpcds-sf100/q13.benchmark\nOld timing: 0.977482\nNew timing: 1.174277\n OTHER TIMINGS\n" > "${file_name}"
+  #           fi
+  #           if [[ "${test}" == "large/tpch.csv" &&  ${{ matrix.versions.old_name }} != "main" ]]; then
+  #             echo "====================================================\n==============  REGRESSIONS DETECTED   =============\n====================================================\n\nbenchmark/large/tpcds-sf100/q13.benchmark\nOld timing: 0.977482\nNew timing: 1.174277\n OTHER TIMINGS\n" > "${file_name}"
+  #           fi
+  #         done
         
-      # - name: Add detected regressions to report file while in matrix context
-      #   shell: bash
-      #   working-directory: ${{ env.mounted_directory_name }}
-      #   run: |
-      #     # we write detected regressions to issue_body_file immidiately after regression tests
-      #     # while we are still in scope of compared versions
+  #     # - name: Add detected regressions to report file while in matrix context
+  #     #   shell: bash
+  #     #   working-directory: ${GITHUB_WORKSPACE}
+  #     #   run: |
+  #     #     # we write detected regressions to issue_body_file immidiately after regression tests
+  #     #     # while we are still in scope of compared versions
           
-      #     regression_outputs="regression_*_${{ matrix.versions.new_name }}_${{ matrix.versions.old_name }}.txt"
-      #     # issue_body_file="issue_body_${{ matrix.versions.new_name }}_${{ matrix.versions.old_name }}.txt"
+  #     #     regression_outputs="regression_*_${{ matrix.versions.new_name }}_${{ matrix.versions.old_name }}.txt"
+  #     #     # issue_body_file="issue_body_${{ matrix.versions.new_name }}_${{ matrix.versions.old_name }}.txt"
           
-      #     # # Flag to keep track of whether the header has been written
-      #     header_written=false
+  #     #     # # Flag to keep track of whether the header has been written
+  #     #     header_written=false
 
-      #     # Loop through the regression output files
-      #     for output in $(ls regression_*_main_main.txt); do
-      #       echo "Processing file: $output"
+  #     #     # Loop through the regression output files
+  #     #     for output in $(ls regression_*_main_main.txt); do
+  #     #       echo "Processing file: $output"
 
-      #       # Check if regressions are detected in the current file
-      #       if ! grep -q "NO REGRESSIONS DETECTED" $output; then
-      #         test_name=$(echo $output | awk -F'_' '{print $3,$4}')
+  #     #       # Check if regressions are detected in the current file
+  #     #       if ! grep -q "NO REGRESSIONS DETECTED" $output; then
+  #     #         test_name=$(echo $output | awk -F'_' '{print $3,$4}')
               
-      #         # Check if the header has already been written
-      #         if [ "$header_written" = false ]; then
-      #           # Write the header once, if not already written
-      #           printf "### Regression detected between \`${{ matrix.versions.new_name }}\` and \`${{ matrix.versions.old_name }}\`\n" >> "issue_body.txt"
-      #           printf "Hash info:\n" >> "issue_body.txt"
-      #           printf "|  | Branch | SHA |\n" >> "issue_body.txt"
-      #           printf "|:-|:-------|:----|\n" >> "issue_body.txt"
-      #           printf "| **NEW** | ${{ matrix.versions.new_name }} | ${{ matrix.versions.new_sha }} |\n" >> "issue_body.txt"
-      #           printf "| **OLD** | ${{ matrix.versions.old_name }} | ${{ matrix.versions.old_sha }} |\n" >> "issue_body.txt"
-      #           printf "#### List of regressed tests\n" >> "issue_body.txt"
+  #     #         # Check if the header has already been written
+  #     #         if [ "$header_written" = false ]; then
+  #     #           # Write the header once, if not already written
+  #     #           printf "### Regression detected between \`${{ matrix.versions.new_name }}\` and \`${{ matrix.versions.old_name }}\`\n" >> "issue_body.txt"
+  #     #           printf "Hash info:\n" >> "issue_body.txt"
+  #     #           printf "|  | Branch | SHA |\n" >> "issue_body.txt"
+  #     #           printf "|:-|:-------|:----|\n" >> "issue_body.txt"
+  #     #           printf "| **NEW** | ${{ matrix.versions.new_name }} | ${{ matrix.versions.new_sha }} |\n" >> "issue_body.txt"
+  #     #           printf "| **OLD** | ${{ matrix.versions.old_name }} | ${{ matrix.versions.old_sha }} |\n" >> "issue_body.txt"
+  #     #           printf "#### List of regressed tests\n" >> "issue_body.txt"
                 
-      #           # Set flag to true, indicating header has been written
-      #           header_written=true
-      #         fi
+  #     #           # Set flag to true, indicating header has been written
+  #     #           header_written=true
+  #     #         fi
 
-      #         # Write the regressed test info for this file
-      #         printf -- "- **%s**\n" "$test_name" >> "issue_body.txt"
-      #         printf -- "\`\`\`\n%s\n\`\`\`\n" "$(awk '/REGRESSIONS DETECTED/,/OTHER TIMINGS/' $output)" >> "issue_body.txt"
-      #         header_written=false
-      #       else
-      #         echo "No Regressions Detected"
-      #       fi
-      #     done
+  #     #         # Write the regressed test info for this file
+  #     #         printf -- "- **%s**\n" "$test_name" >> "issue_body.txt"
+  #     #         printf -- "\`\`\`\n%s\n\`\`\`\n" "$(awk '/REGRESSIONS DETECTED/,/OTHER TIMINGS/' $output)" >> "issue_body.txt"
+  #     #         header_written=false
+  #     #       else
+  #     #         echo "No Regressions Detected"
+  #     #       fi
+  #     #     done
           
-      - name: Upload results
-        uses: actions/upload-artifact@v4
-        if: success()
-        with:
-          name: ${{ matrix.versions.new_name }}_${{ matrix.versions.old_name }}
-          path: ${{ env.mounted_directory_name }}/regression_*_${{ matrix.versions.new_name }}_${{ matrix.versions.old_name }}.txt
-          if-no-files-found: error
+  #     - name: Upload results
+  #       uses: actions/upload-artifact@v4
+  #       if: success()
+  #       with:
+  #         name: ${{ matrix.versions.new_name }}_${{ matrix.versions.old_name }}
+  #         path: ${GITHUB_WORKSPACE}/regression_*_${{ matrix.versions.new_name }}_${{ matrix.versions.old_name }}.txt
+  #         if-no-files-found: error
   
-  collect-issues:
-    name: ISSUES - ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
-    needs: 
-      - define-matrix
-      - start-runner
-      - configure-mount-and-download-benchmark-data
-      - build-and-setup
-      - check-nightly-builds
-      - run-regression-tests
-    if: always()
-    runs-on: self-hosted
-    strategy:
-      matrix: 
-        versions: ${{ fromJSON(needs.define-matrix.outputs.versions) }}
-    outputs:
-      regressions: ${{ steps.collect.outputs.regressions }}
+  # collect-issues:
+  #   name: ISSUES - ${{ matrix.versions.new_name }} vs ${{ matrix.versions.old_name }}
+  #   needs: 
+  #     - define-matrix
+  #     - start-runner
+  #     - configure-mount-and-download-benchmark-data
+  #     - build-and-setup
+  #     - check-nightly-builds
+  #     - run-regression-tests
+  #   if: always()
+  #   runs-on: self-hosted
+  #   strategy:
+  #     matrix: 
+  #       versions: ${{ fromJSON(needs.define-matrix.outputs.versions) }}
+  #   outputs:
+  #     regressions: ${{ steps.collect.outputs.regressions }}
 
-    steps:
-      - name: Collect issues on Benchmarks
-        id: collect
-        shell: bash
-        working-directory: ${{ env.mounted_directory_name }}
-        run: |
-          header_written=false
+  #   steps:
+  #     - name: Collect issues on Benchmarks
+  #       id: collect
+  #       shell: bash
+  #       working-directory: ${GITHUB_WORKSPACE}
+  #       run: |
+  #         header_written=false
 
-          for output in $(ls "regression_*_${{ matrix.versions.new_name }}_${{ matrix.versions.old_name }}.txt"); do
-            echo "Processing output file $output..."
-            # Check if regressions are detected in the current file
-            if ! grep -q "NO REGRESSIONS DETECTED" $output; then
-              # Retrieve benchmark name from the regression_outputs file
-              test_name=$(echo $output | awk -F'_' '{print $3,$4}')
+  #         for output in $(ls "regression_*_${{ matrix.versions.new_name }}_${{ matrix.versions.old_name }}.txt"); do
+  #           echo "Processing output file $output..."
+  #           # Check if regressions are detected in the current file
+  #           if ! grep -q "NO REGRESSIONS DETECTED" $output; then
+  #             # Retrieve benchmark name from the regression_outputs file
+  #             test_name=$(echo $output | awk -F'_' '{print $3,$4}')
               
-              # Check if the header has already been written
-              if [ "$header_written" = false ]; then
-                echo "Adding a header..."
-                printf "### Regression detected between \`${{ matrix.versions.new_name }}\` and \`${{ matrix.versions.old_name }}\`\n" >> "issue_body.txt"
-                printf "Hash info:\n" >> "issue_body.txt"
-                printf "|  | Branch | SHA |\n" >> "issue_body.txt"
-                printf "|:-|:-------|:----|\n" >> "issue_body.txt"
-                printf "| **NEW** | ${{ matrix.versions.new_name }} | ${{ matrix.versions.new_sha }} |\n" >> "issue_body.txt"
-                printf "| **OLD** | ${{ matrix.versions.old_name }} | ${{ matrix.versions.old_sha }} |\n" >> "issue_body.txt"
-                printf "#### List of regressed tests\n" >> "issue_body.txt"
+  #             # Check if the header has already been written
+  #             if [ "$header_written" = false ]; then
+  #               echo "Adding a header..."
+  #               printf "### Regression detected between \`${{ matrix.versions.new_name }}\` and \`${{ matrix.versions.old_name }}\`\n" >> "issue_body.txt"
+  #               printf "Hash info:\n" >> "issue_body.txt"
+  #               printf "|  | Branch | SHA |\n" >> "issue_body.txt"
+  #               printf "|:-|:-------|:----|\n" >> "issue_body.txt"
+  #               printf "| **NEW** | ${{ matrix.versions.new_name }} | ${{ matrix.versions.new_sha }} |\n" >> "issue_body.txt"
+  #               printf "| **OLD** | ${{ matrix.versions.old_name }} | ${{ matrix.versions.old_sha }} |\n" >> "issue_body.txt"
+  #               printf "#### List of regressed tests\n" >> "issue_body.txt"
 
-                header_written=true
-              fi
+  #               header_written=true
+  #             fi
 
-              # Add regressed tests data into the issue_body file
-              printf -- "- **%s**\n" "$test_name" >> "issue_body.txt"
-              printf -- "\`\`\`\n%s\n\`\`\`\n" "$(awk '/REGRESSIONS DETECTED/,/OTHER TIMINGS/' $output)" >> "issue_body.txt"
-              echo "Regressions detected in $test_name $output. An issue should be filed."
-            else
-              echo "No Regressions Detected."
-              echo "regressions=false" >> $GITHUB_OUTPUT
-            fi
-          done
+  #             # Add regressed tests data into the issue_body file
+  #             printf -- "- **%s**\n" "$test_name" >> "issue_body.txt"
+  #             printf -- "\`\`\`\n%s\n\`\`\`\n" "$(awk '/REGRESSIONS DETECTED/,/OTHER TIMINGS/' $output)" >> "issue_body.txt"
+  #             echo "Regressions detected in $test_name $output. An issue should be filed."
+  #           else
+  #             echo "No Regressions Detected."
+  #             echo "regressions=false" >> $GITHUB_OUTPUT
+  #           fi
+  #         done
 
-  file-issue:
-    name: File Issue
-    if: ${{ needs.collect-issues.outputs.regressions != false && contains(github.ref_name, 'main') }}
-    needs: 
-      - start-runner
-      - configure-mount-and-download-benchmark-data
-      - build-and-setup
-      - check-nightly-builds
-      - run-regression-tests
-      - collect-issues
-    runs-on: self-hosted
-    steps:
-      - name: Download nightly build status
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ env.NIGHTLY_BUILD_FILE }} 
-          path: ${{ env.mounted_directory_name }}
+  # file-issue:
+  #   name: File Issue
+  #   if: ${{ needs.collect-issues.outputs.regressions != false && contains(github.ref_name, 'main') }}
+  #   needs: 
+  #     - start-runner
+  #     - configure-mount-and-download-benchmark-data
+  #     - build-and-setup
+  #     - check-nightly-builds
+  #     - run-regression-tests
+  #     - collect-issues
+  #   runs-on: self-hosted
+  #   steps:
+  #     - name: Download nightly build status
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: ${{ env.NIGHTLY_BUILD_FILE }} 
+  #         path: ${GITHUB_WORKSPACE}
           
-      - name: File issue on preparation steps
-        shell: bash
-        working-directory: ${{ env.mounted_directory_name }}
-        if: |
-            contains(github.ref_name, 'main') && 
-            (needs.configure-mount-and-download-benchmark-data.result != 'success' ||
-            needs.build-and-setup.result != 'success')
-        run: |
-          echo -e "Benchmark preparation steps have failed, please check the \
-            [workflow run](https://github.com/duckdblabs/duckdb-internal/actions/runs/${{ github.run_id }}) for details.\n\n" > report.txt
+  #     - name: File issue on preparation steps
+  #       shell: bash
+  #       working-directory: ${GITHUB_WORKSPACE}
+  #       if: |
+  #           contains(github.ref_name, 'main') && 
+  #           (needs.configure-mount-and-download-benchmark-data.result != 'success' ||
+  #           needs.build-and-setup.result != 'success')
+  #       run: |
+  #         echo -e "Benchmark preparation steps have failed, please check the \
+  #           [workflow run](https://github.com/duckdblabs/duckdb-internal/actions/runs/${{ github.run_id }}) for details.\n\n" > report.txt
 
-      - name: Create Regressions Report
-        shell: bash
-        working-directory: ${{ env.mounted_directory_name }}
-        run: |
-          if grep -q "REGRESSIONS DETECTED" issue_body.txt; then
-            echo "Regressions detected, GitHub issue will be filed."
-            echo "# Regression tests" >> report.txt
-            cat issue_body.txt >> report.txt
-            echo "Latest WeeklyRegression run: [Run Link](https://github.com/duckdblabs/duckdb-internal/actions/runs/${{ github.run_id }})" >> report.txt
-          fi
+  #     - name: Create Regressions Report
+  #       shell: bash
+  #       working-directory: ${GITHUB_WORKSPACE}
+  #       run: |
+  #         if grep -q "REGRESSIONS DETECTED" issue_body.txt; then
+  #           echo "Regressions detected, GitHub issue will be filed."
+  #           echo "# Regression tests" >> report.txt
+  #           cat issue_body.txt >> report.txt
+  #           echo "Latest WeeklyRegression run: [Run Link](https://github.com/duckdblabs/duckdb-internal/actions/runs/${{ github.run_id }})" >> report.txt
+  #         fi
 
-      - name: Add Nightly-Build Failures to Report
-        if: ${{ needs.check-nightly-builds.result == 'success' }}
-        shell: bash
-        working-directory: ${{ env.mounted_directory_name }}
-        run: |
-          echo "Adding nightly-build report to GitHub issue."
-          echo "# Nighly-Builds status on main branch" >> report.txt
-          cat ${{ env.NIGHTLY_BUILD_FILE }}.md >> report.txt
-          echo "Latest Nightly Build Status Reports: [duckdb-build-status](https://duckdb.github.io/duckdb-build-status/)"
+  #     - name: Add Nightly-Build Failures to Report
+  #       if: ${{ needs.check-nightly-builds.result == 'success' }}
+  #       shell: bash
+  #       working-directory: ${GITHUB_WORKSPACE}
+  #       run: |
+  #         echo "Adding nightly-build report to GitHub issue."
+  #         echo "# Nighly-Builds status on main branch" >> report.txt
+  #         cat ${{ env.NIGHTLY_BUILD_FILE }}.md >> report.txt
+  #         echo "Latest Nightly Build Status Reports: [duckdb-build-status](https://duckdb.github.io/duckdb-build-status/)"
 
-      # - name: Create Issue
-      #   if: success()
-      #   shell: bash
-      #   working-directory: ${{ env.mounted_directory_name }}
-      #   run: |
-      #     if [ -f report.txt ]; then
-      #       # create issue
-      #       gh issue create --repo ${{ env.gh_issue_repo }} --title "Weekly Regression Test Failure" --body-file report.txt
-      #     fi
-      - name: Upload Report
-        uses: actions/upload-artifact@v4
-        with:
-          name: REPORT
-          path: ${{ env.mounted_directory_name }}/report.txt
-          if-no-files-found: error
+  #     # - name: Create Issue
+  #     #   if: success()
+  #     #   shell: bash
+  #     #   working-directory: ${GITHUB_WORKSPACE}
+  #     #   run: |
+  #     #     if [ -f report.txt ]; then
+  #     #       # create issue
+  #     #       gh issue create --repo ${{ env.gh_issue_repo }} --title "Weekly Regression Test Failure" --body-file report.txt
+  #     #     fi
+  #     - name: Upload Report
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: REPORT
+  #         path: ${GITHUB_WORKSPACE}/report.txt
+  #         if-no-files-found: error
 
-  shutdown:
-    name: shut down
-    if: always()
-    runs-on: self-hosted
-    needs:
-      - start-runner
-      - check-nightly-builds
-      - file-issue
+  # shutdown:
+  #   name: shut down
+  #   if: always()
+  #   runs-on: self-hosted
+  #   needs:
+  #     - start-runner
+  #     - check-nightly-builds
+  #     - file-issue
 
-    steps:
-      - name: shutdown
-        shell: bash
-        run: sudo shutdown
+  #   steps:
+  #     - name: shutdown
+  #       shell: bash
+  #       run: sudo shutdown
